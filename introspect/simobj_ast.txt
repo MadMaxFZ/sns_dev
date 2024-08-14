@@ -1,0 +1,1325 @@
+======================================
+C:\_Projects\sns2\src\sim_object.py
+======================================
+Module(
+    body=[
+        Import(
+            names=[
+                alias(name='logging')]),
+        Expr(
+            value=Call(
+                func=Attribute(
+                    value=Name(id='logging', ctx=Load()),
+                    attr='basicConfig',
+                    ctx=Load()),
+                args=[],
+                keywords=[
+                    keyword(
+                        arg='filename',
+                        value=Constant(value='../logs/sns_simobj.log')),
+                    keyword(
+                        arg='level',
+                        value=Attribute(
+                            value=Name(id='logging', ctx=Load()),
+                            attr='ERROR',
+                            ctx=Load())),
+                    keyword(
+                        arg='format',
+                        value=Constant(value='%(funcName)s:\t\t%(levelname)s:%(asctime)s:\t%(message)s'))])),
+        Import(
+            names=[
+                alias(name='numpy', asname='np')]),
+        ImportFrom(
+            module='poliastro.constants',
+            names=[
+                alias(name='J2000_TDB')],
+            level=0),
+        ImportFrom(
+            module='poliastro.ephem',
+            names=[
+                alias(name='*')],
+            level=0),
+        ImportFrom(
+            module='astropy',
+            names=[
+                alias(name='units', asname='u')],
+            level=0),
+        ImportFrom(
+            module='astropy.time',
+            names=[
+                alias(name='Time')],
+            level=0),
+        ImportFrom(
+            module='poliastro.bodies',
+            names=[
+                alias(name='Body')],
+            level=0),
+        ImportFrom(
+            module='abc',
+            names=[
+                alias(name='ABC'),
+                alias(name='abstractmethod')],
+            level=0),
+        Assign(
+            targets=[
+                Name(id='VEC_TYPE', ctx=Store())],
+            value=Call(
+                func=Name(id='type', ctx=Load()),
+                args=[
+                    Call(
+                        func=Attribute(
+                            value=Name(id='np', ctx=Load()),
+                            attr='zeros',
+                            ctx=Load()),
+                        args=[
+                            Tuple(
+                                elts=[
+                                    Constant(value=3)],
+                                ctx=Load())],
+                        keywords=[
+                            keyword(
+                                arg='dtype',
+                                value=Attribute(
+                                    value=Name(id='np', ctx=Load()),
+                                    attr='float64',
+                                    ctx=Load()))])],
+                keywords=[])),
+        Assign(
+            targets=[
+                Name(id='MIN_SIZE', ctx=Store())],
+            value=Constant(value=0.001)),
+        Assign(
+            targets=[
+                Name(id='BASE_DIMS', ctx=Store())],
+            value=Call(
+                func=Attribute(
+                    value=Name(id='np', ctx=Load()),
+                    attr='ndarray',
+                    ctx=Load()),
+                args=[
+                    Tuple(
+                        elts=[
+                            Constant(value=3)],
+                        ctx=Load())],
+                keywords=[
+                    keyword(
+                        arg='dtype',
+                        value=Attribute(
+                            value=Name(id='np', ctx=Load()),
+                            attr='float64',
+                            ctx=Load()))])),
+        ClassDef(
+            name='SimObject',
+            bases=[
+                Name(id='ABC', ctx=Load())],
+            keywords=[],
+            body=[
+                Expr(
+                    value=Constant(value="\n        This is a base class for SimBody, SimShip and any\n        other gravitationally affected objects in the sim.\n        This base class exists to contain the necessary data to\n        define an object's orbital state about a parent attractor object.\n        This will allow for celestial bodies and maneuverable spacecraft to\n        operate within a common model while allowing for subclasses that can\n        have differing behaviors and specific attributes.\n\n    ")),
+                Assign(
+                    targets=[
+                        Name(id='epoch0', ctx=Store())],
+                    value=Attribute(
+                        value=Name(id='J2000_TDB', ctx=Load()),
+                        attr='jd',
+                        ctx=Load())),
+                Assign(
+                    targets=[
+                        Name(id='system', ctx=Store())],
+                    value=Dict(keys=[], values=[])),
+                Assign(
+                    targets=[
+                        Name(id='dist_unit', ctx=Store())],
+                    value=Attribute(
+                        value=Name(id='u', ctx=Load()),
+                        attr='km',
+                        ctx=Load())),
+                Assign(
+                    targets=[
+                        Name(id='_fields', ctx=Store())],
+                    value=Tuple(
+                        elts=[
+                            Constant(value='attr'),
+                            Constant(value='pos'),
+                            Constant(value='rot'),
+                            Constant(value='elem')],
+                        ctx=Load())),
+                FunctionDef(
+                    name='__init__',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        vararg=arg(arg='args'),
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        kwarg=arg(arg='kwargs'),
+                        defaults=[]),
+                    body=[
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_name',
+                                    ctx=Store())],
+                            value=Constant(value='')),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_dist_unit',
+                                    ctx=Store())],
+                            value=Attribute(
+                                value=Name(id='u', ctx=Load()),
+                                attr='km',
+                                ctx=Load())),
+                        Expr(
+                            value=Call(
+                                func=Attribute(
+                                    value=Call(
+                                        func=Name(id='super', ctx=Load()),
+                                        args=[
+                                            Name(id='SimObject', ctx=Load()),
+                                            Name(id='self', ctx=Load())],
+                                        keywords=[]),
+                                    attr='__init__',
+                                    ctx=Load()),
+                                args=[
+                                    Starred(
+                                        value=Name(id='args', ctx=Load()),
+                                        ctx=Load())],
+                                keywords=[
+                                    keyword(
+                                        value=Name(id='kwargs', ctx=Load()))])),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_epoch',
+                                    ctx=Store())],
+                            value=Call(
+                                func=Name(id='Time', ctx=Load()),
+                                args=[
+                                    Attribute(
+                                        value=Name(id='SimObject', ctx=Load()),
+                                        attr='epoch0',
+                                        ctx=Load())],
+                                keywords=[
+                                    keyword(
+                                        arg='format',
+                                        value=Constant(value='jd')),
+                                    keyword(
+                                        arg='scale',
+                                        value=Constant(value='tdb'))])),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_state',
+                                    ctx=Store())],
+                            value=Call(
+                                func=Attribute(
+                                    value=Name(id='np', ctx=Load()),
+                                    attr='zeros',
+                                    ctx=Load()),
+                                args=[
+                                    Tuple(
+                                        elts=[
+                                            Constant(value=3)],
+                                        ctx=Load())],
+                                keywords=[
+                                    keyword(
+                                        arg='dtype',
+                                        value=Name(id='VEC_TYPE', ctx=Load()))])),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_rad_set',
+                                    ctx=Store())],
+                            value=BinOp(
+                                left=List(
+                                    elts=[
+                                        Name(id='MIN_SIZE', ctx=Load())],
+                                    ctx=Load()),
+                                op=Mult(),
+                                right=Constant(value=3))),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_plane',
+                                    ctx=Store())],
+                            value=Attribute(
+                                value=Name(id='Planes', ctx=Load()),
+                                attr='EARTH_ECLIPTIC',
+                                ctx=Load())),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_body',
+                                    ctx=Store())],
+                            value=Constant(value=None)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_rank',
+                                    ctx=Store())],
+                            value=Constant(value=False)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_RESAMPLE',
+                                    ctx=Store())],
+                            value=Constant(value=False)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_parent',
+                                    ctx=Store())],
+                            value=Constant(value=None)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_sim_parent',
+                                    ctx=Store())],
+                            value=Constant(value=None)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_rot_func',
+                                    ctx=Store())],
+                            value=Constant(value=None)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_type',
+                                    ctx=Store())],
+                            value=Constant(value=None)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_ephem',
+                                    ctx=Store())],
+                            value=Constant(value=None)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_orbit',
+                                    ctx=Store())],
+                            value=Constant(value=None)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_trajectory',
+                                    ctx=Store())],
+                            value=Constant(value=None)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_field_dict',
+                                    ctx=Store())],
+                            value=Constant(value=None)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_periods',
+                                    ctx=Store())],
+                            value=Constant(value=365)),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_o_period',
+                                    ctx=Store())],
+                            value=BinOp(
+                                left=Constant(value=1.0),
+                                op=Mult(),
+                                right=Attribute(
+                                    value=Name(id='u', ctx=Load()),
+                                    attr='year',
+                                    ctx=Load()))),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_spacing',
+                                    ctx=Store())],
+                            value=BinOp(
+                                left=Call(
+                                    func=Attribute(
+                                        value=Attribute(
+                                            value=Name(id='self', ctx=Load()),
+                                            attr='_o_period',
+                                            ctx=Load()),
+                                        attr='to',
+                                        ctx=Load()),
+                                    args=[
+                                        Attribute(
+                                            value=Name(id='u', ctx=Load()),
+                                            attr='d',
+                                            ctx=Load())],
+                                    keywords=[]),
+                                op=Div(),
+                                right=Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_periods',
+                                    ctx=Load()))),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_end_epoch',
+                                    ctx=Store())],
+                            value=BinOp(
+                                left=Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_epoch',
+                                    ctx=Load()),
+                                op=Add(),
+                                right=BinOp(
+                                    left=Attribute(
+                                        value=Name(id='self', ctx=Load()),
+                                        attr='_periods',
+                                        ctx=Load()),
+                                    op=Mult(),
+                                    right=Attribute(
+                                        value=Name(id='self', ctx=Load()),
+                                        attr='_spacing',
+                                        ctx=Load())))),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_axes',
+                                    ctx=Store())],
+                            value=Call(
+                                func=Attribute(
+                                    value=Name(id='np', ctx=Load()),
+                                    attr='identity',
+                                    ctx=Load()),
+                                args=[
+                                    Constant(value=4)],
+                                keywords=[
+                                    keyword(
+                                        arg='dtype',
+                                        value=Attribute(
+                                            value=Name(id='np', ctx=Load()),
+                                            attr='float64',
+                                            ctx=Load()))])),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='x_ax',
+                                    ctx=Store())],
+                            value=Subscript(
+                                value=Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_axes',
+                                    ctx=Load()),
+                                slice=Tuple(
+                                    elts=[
+                                        Slice(
+                                            lower=Constant(value=0),
+                                            upper=Constant(value=3)),
+                                        Constant(value=0)],
+                                    ctx=Load()),
+                                ctx=Load())),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='y_ax',
+                                    ctx=Store())],
+                            value=Subscript(
+                                value=Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_axes',
+                                    ctx=Load()),
+                                slice=Tuple(
+                                    elts=[
+                                        Slice(
+                                            lower=Constant(value=0),
+                                            upper=Constant(value=3)),
+                                        Constant(value=1)],
+                                    ctx=Load()),
+                                ctx=Load())),
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='z_ax',
+                                    ctx=Store())],
+                            value=Subscript(
+                                value=Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_axes',
+                                    ctx=Load()),
+                                slice=Tuple(
+                                    elts=[
+                                        Slice(
+                                            lower=Constant(value=0),
+                                            upper=Constant(value=3)),
+                                        Constant(value=2)],
+                                    ctx=Load()),
+                                ctx=Load())),
+                        Pass()],
+                    decorator_list=[]),
+                FunctionDef(
+                    name='set_dimensions',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self'),
+                            arg(arg='dims')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[
+                            Name(id='BASE_DIMS', ctx=Load())]),
+                    body=[
+                        If(
+                            test=Compare(
+                                left=Attribute(
+                                    value=Name(id='dims', ctx=Load()),
+                                    attr='shape',
+                                    ctx=Load()),
+                                ops=[
+                                    Eq()],
+                                comparators=[
+                                    Attribute(
+                                        value=Name(id='BASE_DIMS', ctx=Load()),
+                                        attr='shape',
+                                        ctx=Load())]),
+                            body=[
+                                Assign(
+                                    targets=[
+                                        Attribute(
+                                            value=Name(id='self', ctx=Load()),
+                                            attr='_rad_set',
+                                            ctx=Store())],
+                                    value=Name(id='dims', ctx=Load()))],
+                            orelse=[
+                                Assign(
+                                    targets=[
+                                        Attribute(
+                                            value=Name(id='self', ctx=Load()),
+                                            attr='_rad_set',
+                                            ctx=Store())],
+                                    value=Name(id='BASE_DIMS', ctx=Load()))])],
+                    decorator_list=[
+                        Name(id='abstractmethod', ctx=Load())]),
+                FunctionDef(
+                    name='set_ephem',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self'),
+                            arg(arg='epoch'),
+                            arg(arg='t_range')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[
+                            Constant(value=None),
+                            Constant(value=None)]),
+                    body=[
+                        Pass()],
+                    decorator_list=[
+                        Name(id='abstractmethod', ctx=Load())]),
+                FunctionDef(
+                    name='set_orbit',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self'),
+                            arg(arg='ephem')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[
+                            Constant(value=None)]),
+                    body=[
+                        Pass()],
+                    decorator_list=[
+                        Name(id='abstractmethod', ctx=Load())]),
+                FunctionDef(
+                    name='update_state',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self'),
+                            arg(arg='epoch')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[
+                            Constant(value=None)]),
+                    body=[
+                        Pass()],
+                    decorator_list=[
+                        Name(id='abstractmethod', ctx=Load())]),
+                FunctionDef(
+                    name='name',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_name',
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='dist_unit',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_dist_unit',
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='parent',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_parent',
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='parent',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self'),
+                            arg(arg='new_parent')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[
+                            Constant(value=None)]),
+                    body=[
+                        If(
+                            test=Compare(
+                                left=Call(
+                                    func=Name(id='type', ctx=Load()),
+                                    args=[
+                                        Name(id='new_parent', ctx=Load())],
+                                    keywords=[]),
+                                ops=[
+                                    Is()],
+                                comparators=[
+                                    Name(id='SimObject', ctx=Load())]),
+                            body=[
+                                Assign(
+                                    targets=[
+                                        Attribute(
+                                            value=Name(id='self', ctx=Load()),
+                                            attr='_parent',
+                                            ctx=Store())],
+                                    value=Name(id='new_parent', ctx=Load()))],
+                            orelse=[])],
+                    decorator_list=[
+                        Attribute(
+                            value=Name(id='parent', ctx=Load()),
+                            attr='setter',
+                            ctx=Load())]),
+                FunctionDef(
+                    name='set_parent',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self'),
+                            arg(arg='new_parent')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[
+                            Constant(value=None)]),
+                    body=[
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_parent',
+                                    ctx=Store())],
+                            value=Name(id='new_parent', ctx=Load()))],
+                    decorator_list=[]),
+                FunctionDef(
+                    name='r',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=BinOp(
+                                left=Subscript(
+                                    value=Attribute(
+                                        value=Name(id='self', ctx=Load()),
+                                        attr='_state',
+                                        ctx=Load()),
+                                    slice=Constant(value=0),
+                                    ctx=Load()),
+                                op=Mult(),
+                                right=Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_dist_unit',
+                                    ctx=Load())))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='v',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=BinOp(
+                                left=BinOp(
+                                    left=Subscript(
+                                        value=Attribute(
+                                            value=Name(id='self', ctx=Load()),
+                                            attr='_state',
+                                            ctx=Load()),
+                                        slice=Constant(value=1),
+                                        ctx=Load()),
+                                    op=Mult(),
+                                    right=Attribute(
+                                        value=Name(id='self', ctx=Load()),
+                                        attr='_dist_unit',
+                                        ctx=Load())),
+                                op=Div(),
+                                right=Attribute(
+                                    value=Name(id='u', ctx=Load()),
+                                    attr='s',
+                                    ctx=Load())))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='pos',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=BinOp(
+                                left=Subscript(
+                                    value=Attribute(
+                                        value=Name(id='self', ctx=Load()),
+                                        attr='_state',
+                                        ctx=Load()),
+                                    slice=Constant(value=0),
+                                    ctx=Load()),
+                                op=Mult(),
+                                right=Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_dist_unit',
+                                    ctx=Load())))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='rot',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Subscript(
+                                value=Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_state',
+                                    ctx=Load()),
+                                slice=Constant(value=2),
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='axes',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Tuple(
+                                elts=[
+                                    Attribute(
+                                        value=Name(id='self', ctx=Load()),
+                                        attr='x_ax',
+                                        ctx=Load()),
+                                    Attribute(
+                                        value=Name(id='self', ctx=Load()),
+                                        attr='y_ax',
+                                        ctx=Load()),
+                                    Attribute(
+                                        value=Name(id='self', ctx=Load()),
+                                        attr='z_ax',
+                                        ctx=Load()),
+                                    Attribute(
+                                        value=Name(id='self', ctx=Load()),
+                                        attr='z_ax',
+                                        ctx=Load())],
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='track',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        If(
+                            test=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_trajectory',
+                                ctx=Load()),
+                            body=[
+                                Return(
+                                    value=Attribute(
+                                        value=Call(
+                                            func=Attribute(
+                                                value=Attribute(
+                                                    value=Attribute(
+                                                        value=Name(id='self', ctx=Load()),
+                                                        attr='_trajectory',
+                                                        ctx=Load()),
+                                                    attr='xyz',
+                                                    ctx=Load()),
+                                                attr='transpose',
+                                                ctx=Load()),
+                                            args=[],
+                                            keywords=[]),
+                                        attr='value',
+                                        ctx=Load()))],
+                            orelse=[])],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='plane',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_plane',
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='plane',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self'),
+                            arg(arg='new_plane')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[
+                            Constant(value=None)]),
+                    body=[
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_plane',
+                                    ctx=Store())],
+                            value=Name(id='new_plane', ctx=Load()))],
+                    decorator_list=[
+                        Attribute(
+                            value=Name(id='plane', ctx=Load()),
+                            attr='setter',
+                            ctx=Load())]),
+                FunctionDef(
+                    name='spacing',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_spacing',
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='RESAMPLE',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_RESAMPLE',
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='RESAMPLE',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self'),
+                            arg(arg='new_sample')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[
+                            Constant(value=True)]),
+                    body=[
+                        Assign(
+                            targets=[
+                                Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='_RESAMPLE',
+                                    ctx=Store())],
+                            value=Constant(value=True))],
+                    decorator_list=[
+                        Attribute(
+                            value=Name(id='RESAMPLE', ctx=Load()),
+                            attr='setter',
+                            ctx=Load())]),
+                FunctionDef(
+                    name='epoch',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_epoch',
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='epoch',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self'),
+                            arg(arg='new_epoch')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[
+                            Constant(value=None)]),
+                    body=[
+                        If(
+                            test=Compare(
+                                left=Name(id='new_epoch', ctx=Load()),
+                                ops=[
+                                    Is()],
+                                comparators=[
+                                    Constant(value=None)]),
+                            body=[
+                                Assign(
+                                    targets=[
+                                        Name(id='new_epoch', ctx=Store())],
+                                    value=Attribute(
+                                        value=Name(id='SimObject', ctx=Load()),
+                                        attr='epoch0',
+                                        ctx=Load()))],
+                            orelse=[]),
+                        If(
+                            test=Compare(
+                                left=Call(
+                                    func=Name(id='type', ctx=Load()),
+                                    args=[
+                                        Name(id='new_epoch', ctx=Load())],
+                                    keywords=[]),
+                                ops=[
+                                    Eq()],
+                                comparators=[
+                                    Name(id='Time', ctx=Load())]),
+                            body=[
+                                If(
+                                    test=Compare(
+                                        left=Name(id='new_epoch', ctx=Load()),
+                                        ops=[
+                                            Gt()],
+                                        comparators=[
+                                            Attribute(
+                                                value=Name(id='self', ctx=Load()),
+                                                attr='_end_epoch',
+                                                ctx=Load())]),
+                                    body=[
+                                        Expr(
+                                            value=Call(
+                                                func=Attribute(
+                                                    value=Name(id='self', ctx=Load()),
+                                                    attr='set_ephem',
+                                                    ctx=Load()),
+                                                args=[
+                                                    Name(id='new_epoch', ctx=Load())],
+                                                keywords=[]))],
+                                    orelse=[]),
+                                Assign(
+                                    targets=[
+                                        Attribute(
+                                            value=Name(id='self', ctx=Load()),
+                                            attr='_epoch',
+                                            ctx=Store())],
+                                    value=Call(
+                                        func=Name(id='Time', ctx=Load()),
+                                        args=[
+                                            Name(id='new_epoch', ctx=Load())],
+                                        keywords=[
+                                            keyword(
+                                                arg='format',
+                                                value=Constant(value='jd')),
+                                            keyword(
+                                                arg='scale',
+                                                value=Constant(value='tdb'))]))],
+                            orelse=[])],
+                    decorator_list=[
+                        Attribute(
+                            value=Name(id='epoch', ctx=Load()),
+                            attr='setter',
+                            ctx=Load())]),
+                FunctionDef(
+                    name='end_epoch',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_end_epoch',
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='end_epoch',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self'),
+                            arg(arg='new_end')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[
+                            Constant(value=None)]),
+                    body=[
+                        If(
+                            test=Compare(
+                                left=Call(
+                                    func=Name(id='type', ctx=Load()),
+                                    args=[
+                                        Name(id='new_end', ctx=Load())],
+                                    keywords=[]),
+                                ops=[
+                                    Eq()],
+                                comparators=[
+                                    Name(id='Time', ctx=Load())]),
+                            body=[
+                                Assign(
+                                    targets=[
+                                        Attribute(
+                                            value=Name(id='self', ctx=Load()),
+                                            attr='_end_epoch',
+                                            ctx=Store())],
+                                    value=Name(id='new_end', ctx=Load()))],
+                            orelse=[])],
+                    decorator_list=[
+                        Attribute(
+                            value=Name(id='end_epoch', ctx=Load()),
+                            attr='setter',
+                            ctx=Load())]),
+                FunctionDef(
+                    name='elem_coe',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Pass()],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='elem_pqw',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Pass()],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='elem_rv',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Pass()],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='ephem',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_ephem',
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='orbit',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_orbit',
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='state',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Attribute(
+                                value=Name(id='self', ctx=Load()),
+                                attr='_state',
+                                ctx=Load()))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='dist2parent',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Return(
+                            value=Call(
+                                func=Attribute(
+                                    value=Attribute(
+                                        value=Name(id='np', ctx=Load()),
+                                        attr='linalg',
+                                        ctx=Load()),
+                                    attr='norm',
+                                    ctx=Load()),
+                                args=[
+                                    Attribute(
+                                        value=Name(id='self', ctx=Load()),
+                                        attr='pos',
+                                        ctx=Load())],
+                                keywords=[]))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='vel',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Expr(
+                            value=Constant(value='\n        TODO:  make this a property that returns the velocity of the body relative to system primary\n        Returns\n        -------\n        velocity of body relative to its parent body\n        ')),
+                        Return(
+                            value=BinOp(
+                                left=BinOp(
+                                    left=Subscript(
+                                        value=Attribute(
+                                            value=Name(id='self', ctx=Load()),
+                                            attr='_state',
+                                            ctx=Load()),
+                                        slice=Constant(value=1),
+                                        ctx=Load()),
+                                    op=Mult(),
+                                    right=Attribute(
+                                        value=Name(id='self', ctx=Load()),
+                                        attr='_dist_unit',
+                                        ctx=Load())),
+                                op=Div(),
+                                right=Attribute(
+                                    value=Name(id='u', ctx=Load()),
+                                    attr='s',
+                                    ctx=Load())))],
+                    decorator_list=[
+                        Name(id='property', ctx=Load())]),
+                FunctionDef(
+                    name='epoch',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[
+                            arg(arg='self'),
+                            arg(arg='e')],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[
+                            Constant(value=None)]),
+                    body=[
+                        If(
+                            test=Compare(
+                                left=Call(
+                                    func=Name(id='type', ctx=Load()),
+                                    args=[
+                                        Name(id='e', ctx=Load())],
+                                    keywords=[]),
+                                ops=[
+                                    Eq()],
+                                comparators=[
+                                    Name(id='Time', ctx=Load())]),
+                            body=[
+                                Assign(
+                                    targets=[
+                                        Attribute(
+                                            value=Name(id='self', ctx=Load()),
+                                            attr='_epoch',
+                                            ctx=Store())],
+                                    value=Name(id='e', ctx=Load()))],
+                            orelse=[])],
+                    decorator_list=[
+                        Attribute(
+                            value=Name(id='epoch', ctx=Load()),
+                            attr='setter',
+                            ctx=Load())])],
+            decorator_list=[]),
+        If(
+            test=Compare(
+                left=Name(id='__name__', ctx=Load()),
+                ops=[
+                    Eq()],
+                comparators=[
+                    Constant(value='__main__')]),
+            body=[
+                FunctionDef(
+                    name='main',
+                    args=arguments(
+                        posonlyargs=[],
+                        args=[],
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        defaults=[]),
+                    body=[
+                        Pass()],
+                    decorator_list=[]),
+                Expr(
+                    value=Call(
+                        func=Name(id='main', ctx=Load()),
+                        args=[],
+                        keywords=[])),
+                Expr(
+                    value=Call(
+                        func=Name(id='print', ctx=Load()),
+                        args=[
+                            Constant(value="SimBody doesn't really do much...")],
+                        keywords=[]))],
+            orelse=[])],
+    type_ignores=[])
