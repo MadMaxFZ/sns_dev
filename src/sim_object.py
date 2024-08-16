@@ -86,6 +86,7 @@ class SimObject(ABC):
 
     @abstractmethod
     def update_state(self, epoch=None):
+        # TODO :: Add a default state update here
         pass
 
     @property
