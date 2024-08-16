@@ -133,7 +133,7 @@ class StarSystemVisuals:
         self._skymap = SkyMap(parent=self._scene)
         self._frame_viz = XYZAxis(parent=self._scene)  # set parent in MainSimWindow ???
         self._frame_viz.transform = MT()
-        self._frame_viz.transform.scale((1e+08, 1e+08, 1e+08))
+        self._frame_viz.transform.scale((1e+09, 1e+09, 1e+09))
 
         self._bods_pos = list(self._agg_cache['pos'].values())
 
