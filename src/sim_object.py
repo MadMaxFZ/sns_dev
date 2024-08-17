@@ -31,7 +31,7 @@ class SimObject(ABC):
     """
     epoch0 = J2000_TDB.jd
     system = {}
-    dist_unit = u.km
+    base_dist_unit = u.km
     # created = pyqtSignal(str)
     _fields = ('attr',
                'pos',
@@ -41,7 +41,7 @@ class SimObject(ABC):
 
     def __init__(self, *args, **kwargs):
         self._name       = ""
-        self._dist_unit  = u.km
+        self._dist_unit  = self.base_dist_unit
         super(SimObject, self).__init__(*args, **kwargs)
         self._epoch      = Time(SimObject.epoch0, format='jd', scale='tdb')
         self._state      = np.zeros((3,), dtype=VEC_TYPE)
