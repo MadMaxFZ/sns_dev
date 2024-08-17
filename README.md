@@ -6,6 +6,8 @@
 - The simulation is composed of two primary elements: The Model and the Viewer:
 
 ### MODEL OVERVIEW
+- The model consists of a collection of objects that are subclasses of SimObject. A SimBody
+  represents a celestial body, whereas a SimShip represents a maneuverable spacecraft.
 - The model is implemented within its own process in order to increase performance.
 - It takes commands via a command queue, emits responses via a result queue, and exposes   
   the state of the model in one or more SharedMemory segments.
@@ -17,5 +19,5 @@
 ### VIEWER OVERVIEW
 - The Viewer operates as the main process to provide a mechanism to visualise the state of
   the Model and provides interfaces to modify and propagate the Model through time.
-- The Viewer will also provide any interfaces necessary to lan and execute maneuvers for any   
+- The Viewer will also provide any interfaces necessary to plan and execute maneuvers for any   
   simulated spacecraft within the Model.
