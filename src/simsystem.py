@@ -81,7 +81,7 @@ class SimSystem(SimObjectDict):
     def _get_shm_buffs(self):
         b0 = shm.SharedMemory(create=True,
                               name="state_buff0",
-                              size=self.num_bodies * self._state_size),
+                              size=self.num_bodies * self._state_size)
         b1 = shm.SharedMemory(create=True,
                               name="state_buff1",
                               size=self.num_bodies * self._state_size)
