@@ -5,7 +5,7 @@ import psygnal
 from astropy.time import Time, TimeDeltaSec
 from multiprocessing import Queue
 from simobj_dict import SimObjectDict
-from multiprocessing import shared_memory
+from multiprocessing import shared_memory as shm
 # from poliastro.bodies import Body
 # from PyQt5.QtCore import QObject
 
@@ -14,17 +14,6 @@ logging.basicConfig(filename="../logs/sns_sysmod.log",
                     format="%(funcName)s:\t\t%(levelname)s:%(asctime)s:\t%(message)s",
                     )
 
-# class SystemWrapper(QObject):
-#     def __init__(self, *args, **kwargs):
-#         """
-#
-#         Returns
-#         -------
-#         None
-#         """
-#         super(SystemWrapper, self).__init__(parent=None)
-#         self.model = SimSystem(*args, **kwargs)
-
 
 class SimSystem(SimObjectDict):
     """
@@ -32,13 +21,16 @@ class SimSystem(SimObjectDict):
     initialized = psygnal.Signal(list)
     panel_data = psygnal.Signal(list, list)
 
-    def __init__(self, comm_q, stat_q, *args, **kwargs):
+    def __init__(self, comm_q, stat_q, buff0, buff1, *args, **kwargs):
         """
             Initialize the star system model. Two Queues are passed to provide
-            communication with the main process
+            communication with the main process along with two shared memory buffers.
 
         Parameters
         ----------
+        comm_q          : A Queue from which commands are received
+        stat_q          : A Queue from which results are emitted
+        buff0, buff1    : Two shared memory buffers of the same corrct size
 
         """
         self._t0 = self._base_t = time.perf_counter()
@@ -46,23 +38,54 @@ class SimSystem(SimObjectDict):
         self._t1 = time.perf_counter()
         self._t0 = self._t1
         print(f'SimSystem declaration took {(self._t1 - self._base_t) * 1e-06:.4f} seconds...')
+        # TODO :: Instead of using the following tuple, simply collect the essential fields,
+        #         then collect one or more of the orbital elements type. 'rad0' is static.
         self._model_fields2agg = ('rad0', 'pos', 'rot', 'radius',
                                   'elem_coe_', 'elem_pqw_', 'elem_rv',
                                   'is_primary',
                                   )
         self.comm_q = comm_q
         self.stat_q = stat_q
+        #   this method loads up all the default planets with no argument
         self.load_from_names()
+        #   run an initial cycle of the states to make sure something is there
         self.update_state(self.epoch)
 
+        #   determine the bytes needed to hold one body state
         self._state_size = self.data['Earth'].state.nbytes
-        self._shmem_0 = shared_memory.SharedMemory(create=True,
-                                                   name="state_buff0",
-                                                   size=self.num_bodies * self._state_size)
-        self._shmem_1 = shared_memory.SharedMemory(create=True,
-                                                   name="state_buff1",
-                                                   size=self.num_bodies * self._state_size)
+
+        #   create two areas of shared memory unless proper buffers are provided
+        if buff0 and buff1:
+            if (type(buff0) == shm.SharedMemory) and (type(buff1) == shm.SharedMemory):
+                if (buff0.nbytes != self.num_bodies * self._state_size) or (buff0.nbytes != self.num_bodies * self._state_size):
+                    print(f"WARNING: one or more buffers are not the correct size !!! Setting defaults...")
+                    buff0, buff1 = self._get_shm_buffs()
+
+            else:
+                raise Exception(f"ERROR. Type {type(buff0)} is not shm.SharedMemory !!!")
+
+        else:
+            print(f"WARNING: No memory buffer provided !!!\n>>>>>>>> I suppose we must generate one...")
+            buff0, buff1 = self._get_shm_buffs()
+
+        self._membuffs = [buff0, buff1]
+        self._curr_buff = 0
         self._state_buffers = None
+
+    def __del__(self):
+        """ Make sure the SharedMemory gets deallocated
+        """
+        [buff.close() for buff in self._membuffs]
+        [buff.unlink() for buff in self._membuffs]
+
+    def _get_shm_buffs(self):
+        b0 = shm.SharedMemory(create=True,
+                              name="state_buff0",
+                              size=self.num_bodies * self._state_size),
+        b1 = shm.SharedMemory(create=True,
+                              name="state_buff1",
+                              size=self.num_bodies * self._state_size)
+        return b0, b1
 
     def get_agg_fields(self, field_ids):
         # res = {'primary_name': self.system_primary.name}
