@@ -6,7 +6,7 @@ from vispy.app import use_app
 from PyQt5 import QtWidgets, QtCore
 # from PyQt5.QtCore import QThread
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QCoreApplication
-from multiprocessing import Queue, shared_memory
+from multiprocessing import Queue, shared_memory as shm
 from datastore import vec_type
 
 if __name__ == "__main__":
@@ -16,6 +16,6 @@ if __name__ == "__main__":
     buff_size = buffer.nbytes
     buff_idx = 0
     print(f"BUFFER_SIZE = {buff_size}")
-    shm = shared_memory(name='state_buffer', create=True, size=buff_size)
+    shared_state = shm.SharedMemory(name='state_buffer', create=True, size=buff_size)
 
     pass
