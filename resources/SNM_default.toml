@@ -1,0 +1,134 @@
+[[Wins]]
+win_id = 0
+capt = "Space Navigation Model"
+wXmax = 1000
+wYmax = 700
+
+[[Wins]]
+win_id = 1
+capt = "Instrumentation"
+wXmax = 100
+wYmax = 75
+
+[[Cams]]
+id = 0
+name = "Observer_00"
+win_id = 0
+maxR = 7500.0
+FOV = 15
+zN = 10.0
+zF = 30000.0
+pos = [ 0.0, 0.0, 15000.0]
+aim = [ 0.0, 0.0, 0.0]
+top = [ 0.0, -1.0, 0.0]
+vel = [0.0, 0.0, 0.0]
+accel = [0.0, 0.0, 0.0]
+yaw = 0.0
+pitch = 0.0
+roll = 0.0
+d_yaw = 0.0
+d_pitch = 0.0
+d_roll = 0.0
+
+[[Cams]]
+cam_id = 1
+maxR = 5000000000.0
+FOV = 60
+zN = 0.1
+zF = 22500000000.0
+pos = [ 0.0, 15000000000.0, 0.0,]
+aim = [ 0.0, 0.0, 0.0,]
+top = [ 0.0, 1.0, 0.0,]
+
+[[Bods]]
+b_id = 0
+bName = "Mercury"
+type = "planet"
+cName = "gray"
+cRGB = [ 128, 128, 128,]
+
+[[Bods]]
+b_id = 1
+bName = "Venus"
+type = "planet"
+cName = "pale yellow"
+cRGB = [ 255, 255, 237,]
+
+[[Bods]]
+b_id = 2
+bName = "Earth"
+type = "planet"
+cName = "green"
+cRGB = [ 0, 255, 0,]
+
+[[Bods]]
+b_id = 3
+bName = "Mars"
+type = "planet"
+cName = "rust"
+cRGB = [ 183, 65, 14,]
+
+[[Bods]]
+b_id = 4
+bName = "Jupiter"
+type = "planet"
+cName = "orange"
+cRGB = [ 255, 165, 0,]
+
+[[Bods]]
+b_id = 5
+bName = "Saturn"
+type = "planet"
+cName = "pale gold"
+cRGB = [ 230, 190, 138,]
+
+[[Bods]]
+b_id = 6
+bName = "Uranus"
+type = "planet"
+cName = "light blue"
+cRGB = [ 173, 216, 230,]
+
+[[Bods]]
+b_id = 7
+bName = "Neptune"
+type = "planet"
+cName = "pale blue"
+cRGB = [ 100, 100, 255,]
+
+[[Bods]]
+b_id = 8
+bName = "Pluto"
+type = "planet"
+cName = "pink"
+cRGB = [ 255, 20, 147,]
+
+[[Bods]]
+b_id = 9
+bName = "Moon"
+type = "moon"
+cName = "light gray"
+cRGB = [ 192, 192, 192,]
+
+[[Bods]]
+b_id = 10
+bName = "Sun"
+type = "star"
+cName = "yellow"
+cRGB = [ 255, 255, 0,]
+
+[MetaS]
+author = "Max S. Whitten"
+email = "madmaxfz@gmail.com"
+title = "TOML description of SpaceNavModel default config"
+created = "2020-01-18 22:45"
+
+[Parms]
+rootBody = 10
+ephem_type = "jpl"
+epoch_time = "1970-03-20 18:56:00"
+epoch_scale = "tdb"
+m_slices = 100
+vtx_form = "v3f"
+clr_form = "c3B"
+pointSize = 3
