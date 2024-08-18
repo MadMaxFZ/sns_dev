@@ -24,6 +24,8 @@ logging.basicConfig(filename=SNS_SOURCE_PATH + "../logs/sns_defs.log",
                     level=logging.ERROR,
                     format="%(funcName)s:\t%(levelname)s:%(asctime)s:\t%(message)s",
                     )
+
+#   Here's a few dreadful global variables
 DEF_UNITS = u.km
 DEF_EPOCH0 = J2000_TDB
 DEF_TEX_FNAME = "../resources/textures/2k_5earth_daymap.png"
@@ -35,11 +37,29 @@ DEF_CAM_STATE = {'center': (-8.0e+08, 0.0, 0.0),
 
 
 class SystemDataStore:
+    """ The purpose of this class is to provide a set of bodies to use as a default.
+        A dict is constructed with three primary items:
+
+            SYS_PARAMS
+            BODY_PARAMS
+            VIZZ_PARAMS
+
+        The BODY and VIZZ parameters are dicts with the body names as a key,
+        with each containing it's own set of parameters.
+        The SYS parameters are just a few global values.
+    """
     def __init__(self):
-        """
+        """ Collect and construct a dict to contain the basic default parameters for
+            a standard set of body object in the simulation.
+            The basic technique is that a series of lsts, each with a parameter for each body,
+            are recombined into a dictionary where the body is the key with the parameters for
+            that body are grouped beneath it. The TYPE and MARK fields are determined according
+            to the parent of the body.
         """
         self._dist_unit = DEF_UNITS
         DEF_EPOCH = DEF_EPOCH0  # default epoch
+
+        # System Parameters dict
         SYS_PARAMS = dict(sys_name="Sol",
                           def_epoch=DEF_EPOCH,
                           dist_unit=self._dist_unit,
@@ -57,7 +77,9 @@ class SystemDataStore:
         _type_count = {}  # dict of body types and the count of each typE
         _viz_assign = {}  # dict of visual names to use for each body
         _body_count = 0  # number of available bodies
-        _body_set: list[Body] = [Sun,  # all built-ins from poliastro
+
+        # all built-ins from poliastro
+        _body_set: list[Body] = [Sun,
                                  Mercury,
                                  Venus,
                                  Earth,
@@ -81,6 +103,7 @@ class SystemDataStore:
                                  # Charon,
                                  ]
         self._body_names = [bod.name for bod in _body_set]
+
         # orbital periods of bodies
         _o_per_set = [11.86 * u.year,
                       87.97 * u.d,
@@ -94,6 +117,7 @@ class SystemDataStore:
                       164.79 * u.year,
                       248 * u.year,
                       ]
+
         # reference frame fixed to planet surfaces
         _frame_set = [SunFixed,
                       MercuryFixed,
@@ -107,6 +131,7 @@ class SystemDataStore:
                       NeptuneFixed,
                       None,
                       ]
+
         # rotational elements as function of time
         _rot_set = [sun_rot_elements_at_epoch,
                     mercury_rot_elements_at_epoch,
@@ -120,6 +145,7 @@ class SystemDataStore:
                     neptune_rot_elements_at_epoch,
                     moon_rot_elements_at_epoch,
                     ]
+
         # body color values in RGBA (0...255)
         _color_RGB = [[253, 184, 19],  # base color for each body
                       [26, 26, 26],
@@ -135,24 +161,12 @@ class SystemDataStore:
                       ]
         _colorset_rgb = np.array(_color_RGB) / 256
 
-        # types of bodies in simulation
-        _body_types = ("star",
-                       "planet",
-                       "moon",
-                       "ship",
-                       )
-        # Markers symbol to be used for each body type
-        _body_mark = ('star',
-                      'o',
-                      'diamond',
-                      'triangle',
-                      )
         # indices of body type for each body
         # TODO: Discover primary body and hierarchy tree instead of this
 
         _type_set = (0, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1,)
 
-        # default visual elements to use on which bodies (not used)
+        #   default visual elements to use on which bodies (not used)
         _viz_keys = ("reticle", "nametag", "refframe", "ruler",
                      "surface", "oscorbit", "radvec", "velvec",)
         _com_viz = [_viz_keys[1], _viz_keys[2], _viz_keys[4]]
@@ -168,10 +182,25 @@ class SystemDataStore:
                 _tex_fnames.append(i)  # add PNG type files to list
         # _tex_fnames = _tex_fnames.sort()  # it doesn't like this sort()
         _tex_fnames = tuple(_tex_fnames)  # the tuple locks in the order of sorted elements
+
         # indices of texture filenames for each body
         _tex_idx = (0, 1, 3, 10, 17, 11, 12, 13, 15, 16, 17,
                     # 21, 21, 21, 21, 21, 21, 21, 21, 21,
                     )
+
+        # types of bodies in simulation
+        _body_types = ("star",
+                       "planet",
+                       "moon",
+                       "ship",
+                       )
+
+        # Markers symbol to be used for each body type
+        _body_mark = ('star',
+                      'o',
+                      'diamond',
+                      'triangle',
+                      )
 
         for idx in range(len(self._body_names)):  # idx = [0..,len(_body_names)-1]
             _bod_name = self._body_names[idx]
@@ -180,12 +209,17 @@ class SystemDataStore:
 
             logging.debug(">LOADING STATIC DATA for " + str(_bod_name))
 
+            # configure texture data
             try:
                 _tex_fname = _tex_path + _tex_fnames[_tex_idx[idx]]  # get path of indexed filename
             except:
                 _tex_fname = _tex_path + _def_tex_fname
-            _tex_dat_set.update({_bod_name: get_tex_data(fname=_tex_fname)})  # add texture data to active dict
+
+            # the textures should be loaded later on
+            _tex_dat_set.update({_bod_name: get_tex_data(fname=_tex_fname)})
             logging.debug("_tex_dat_set[" + str(idx) + "] = " + str(_tex_fname))
+
+            # configure radius data
             if _body.parent is None:
                 R = _body.R
                 Rm = Rp = R
@@ -194,15 +228,16 @@ class SystemDataStore:
                 Rm = _body.R_mean
                 Rp = _body.R_polar
 
+            # define parent of body
             if _body.parent is None:
-                _par_name = None
+                _parent_name = None
             else:
-                _par_name = _body.parent.name
+                _parent_name = _body.parent.name
 
             # a dict of ALL body data EXCEPT the viz_dict{}
             _body_data = dict(body_name=_body.name,  # build the _body_params dict
                               body_obj=_body,
-                              parent_name=_par_name,
+                              parent_name=_parent_name,
                               r_set=(R, Rm, Rp),
                               fixed_frame=_frame_set[idx],
                               rot_func=_rot_set[idx],
@@ -210,6 +245,7 @@ class SystemDataStore:
                               body_type=_body_types[_type_set[idx]]
                               )
             _body_params.update({_bod_name: _body_data})
+
             # a dict of the initial visual parameters
             _vizz_data = dict(body_color=_colorset_rgb[idx],
                               body_alpha=1.0,
@@ -222,12 +258,14 @@ class SystemDataStore:
                               )
             _vizz_params.update({_bod_name: _vizz_data})
 
+            # configure the body type
             if _body_data['body_type'] not in _type_count.keys():  # identify types of bodies
                 _type_count[_body_data['body_type']] = 0
             _type_count[_body_types[_type_set[idx]]] += 1  # count members of each type
             idx += 1
             _body_count += 1
 
+        # This makes sure that all sets are of the same length so each body is completely defined.
         _check_sets = [
             len(_body_set),
             len(_colorset_rgb),
@@ -244,6 +282,7 @@ class SystemDataStore:
         print("\t>>>check sets check out!")
         logging.debug("STATIC DATA has been loaded and verified...")
 
+        # compile all the data into a master dict structure
         self._datastore = dict(DFLT_EPOCH=DEF_EPOCH,
                                SYS_PARAMS=SYS_PARAMS,
                                TEX_FNAMES=_tex_fnames,
@@ -257,6 +296,8 @@ class SystemDataStore:
                                VIZZ_PARAM=_vizz_params,
                                )
         logging.debug("ALL data for the system have been collected...!")
+
+    """ ---------------------  PROPERTIES  ---------------------------------------- """
 
     @property
     def dist_unit(self):
@@ -334,6 +375,7 @@ class SystemDataStore:
     def model_data_group_keys(self):
         return tuple(['attr_', 'elem_coe', 'elem_pqw', 'elem_rv', 'syst_', 'vizz_'])
 
+"""------------------------  UTILITY FUNCTIONS --------------------------------------------"""
 
 def quat_to_rpy(quat):
     if quat is not None:
@@ -396,8 +438,9 @@ def toTD(epoch=None):
     return dict(T=T, d=d)
 
 
-def earth_rot_elements_at_epoch(T=None, d=None):
+def earth_rot_elements_at_epoch(epoch):
     """"""
+    T, d = list(toTD(epoch).values())
     _T = T
     return 0, 90 - 23.5, (d - math.floor(d)) * 360.0
 

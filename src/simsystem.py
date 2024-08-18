@@ -56,8 +56,8 @@ class SimSystem(SimObjectDict):
 
         #   create two areas of shared memory unless proper buffers are provided
         if buff0 and buff1:
-            if (type(buff0) == shm.SharedMemory) and (type(buff1) == shm.SharedMemory):
-                if (buff0.nbytes != self.num_bodies * self._state_size) or (buff0.nbytes != self.num_bodies * self._state_size):
+            if isinstance(buff0, shm.SharedMemory) and isinstance(buff1, shm.SharedMemory):
+                if (buff0.size != self.num_bodies * self._state_size) or (buff0.size != self.num_bodies * self._state_size):
                     print(f"WARNING: one or more buffers are not the correct size !!! Setting defaults...")
                     buff0, buff1 = self._get_shm_buffs()
 
@@ -79,6 +79,12 @@ class SimSystem(SimObjectDict):
         [buff.unlink() for buff in self._membuffs]
 
     def _get_shm_buffs(self):
+        """ Create two shared memory buffers according to the number of bodies present and
+            the size of state information for each body.
+
+            ReturnsS bo, b1 are two equally sized shared memory buffers,
+            explicitly destroyed in __del__
+        """
         b0 = shm.SharedMemory(create=True,
                               name="state_buff0",
                               size=self.num_bodies * self._state_size)

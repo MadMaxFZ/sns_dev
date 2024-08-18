@@ -126,6 +126,13 @@ class SimBody(SimObject):
 
             if type(self._orbit) == Orbit:
                 new_orbit = self._orbit.propagate(self._epoch)
+
+                #   Funky earth rotation function...
+                if self._name != "Earth":
+                    rot_vec = self._rot_func(**toTD(self._epoch))
+                else:
+                    rot_vec = self._rot_func(self._epoch)
+
                 new_state = np.array([new_orbit.r.to(self._dist_unit).value,
                                       new_orbit.v.to(self._dist_unit / u.s).value,
                                       self._rot_func(**toTD(self._epoch)),
