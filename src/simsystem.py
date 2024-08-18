@@ -21,7 +21,7 @@ class SimSystem(SimObjectDict):
     initialized = psygnal.Signal(list)
     panel_data = psygnal.Signal(list, list)
 
-    def __init__(self, comm_q, stat_q, buff0, buff1, *args, **kwargs):
+    def __init__(self, comm_q, stat_q, buff0=None, buff1=None, *args, **kwargs):
         """
             Initialize the star system model. Two Queues are passed to provide
             communication with the main process along with two shared memory buffers.
@@ -30,7 +30,7 @@ class SimSystem(SimObjectDict):
         ----------
         comm_q          : A Queue from which commands are received
         stat_q          : A Queue from which results are emitted
-        buff0, buff1    : Two shared memory buffers of the same corrct size
+        buff0, buff1    : Two shared memory buffers of the same correct size
 
         """
         self._t0 = self._base_t = time.perf_counter()
