@@ -57,7 +57,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.stat_q = Queue()
 
         #       TODO: Here the model process will be spawned:
-        self.model = SimSystem(self.comm_q, self.stat_q, None, None, use_multi=True)
+        self.model = SimSystem(self.comm_q, self.stat_q, None, None, fuse_multi=True)
         # self.model.load_from_names()
         self.body_names = self.model.body_names
 
@@ -92,6 +92,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.cameras.curr_cam.set_state(DEF_CAM_STATE)
         self.curr_simbod = self.model['Earth']
         self.reset_rotation()
+        # noinspection PyUnresolvedReferences
         self.main_window_ready.emit('Earth')
         self._last_elapsed = 0.0
         self.rpy_delta = np.zeros((3, 1), dtype=np.float64)
@@ -106,6 +107,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.central_widget.setLayout(main_layout)
         self.setCentralWidget(self.central_widget)
 
+    # noinspection PyUnresolvedReferences
     def _connect_slots(self):
         """
             Connects slots to signals.
