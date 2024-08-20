@@ -135,7 +135,7 @@ class SimBody(SimObject):
 
                 new_state = np.array([new_orbit.r.to(self._dist_unit).value,
                                       new_orbit.v.to(self._dist_unit / u.s).value,
-                                      self._rot_func(**toTD(self._epoch)),
+                                      rot_vec,
                                       ])
                 self._orbit = new_orbit
             else:
