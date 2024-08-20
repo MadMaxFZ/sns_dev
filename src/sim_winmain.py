@@ -143,6 +143,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.ui.btn_real_twarp.pressed.connect(self.controls.toggle_twarp2norm)
         self.ui.btn_reverse.pressed.connect(self.controls.toggle_twarp_sign)
         self.ui.btn_stop_reset.pressed.connect(self.controls.reset_epoch_timer)
+        self.ui.btn_stop_reset.pressed.connect(self.try_breakpoint)
         self.ui.btn_set_rot.pressed.connect(self.reset_rotation)
         self.blockSignals(False)
         print("Signals / Slots Connected...")
@@ -153,6 +154,9 @@ class MainQtWindow(QtWidgets.QMainWindow):
 
     def update_elapsed(self):
         self.ui.time_elapsed.setText(f'{(float(self.ui.time_elapsed.text()) + self.interval / 86400):.4f}')
+
+    def try_breakpoint(self):
+        pass
 
     def swapCam(self):
         if self.ui.cam2selected.isChecked():

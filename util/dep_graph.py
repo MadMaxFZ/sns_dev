@@ -1,4 +1,4 @@
-import networx as nx
+import networkx as nx
 import pyvis
 
 # Create a networkx graph object

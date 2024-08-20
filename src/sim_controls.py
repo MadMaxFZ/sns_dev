@@ -131,6 +131,7 @@ class Controls(QtWidgets.QWidget):
         self.ui.time_slider.setValue(0)
         self.ui.time_elapsed.setText('0')
         self.ui.time_ref_epoch.setText(f'{DEF_EPOCH}')
+        pass
 
     def set_active_cam(self, cam_id):
         print()
