@@ -72,11 +72,12 @@ class SimSystem(SimObjectDict):
         self._curr_buff = 0
         self._state_buffers = None
 
-    def __del__(self):
-        """ Make sure the SharedMemory gets deallocated
-        """
-        [buff.close() for buff in self._membuffs]
-        [buff.unlink() for buff in self._membuffs]
+    # def __del__(self):
+    #     """ Make sure the SharedMemory gets deallocated
+    #     """
+    #
+        # [buff.close() for buff in self._membuffs]
+        # [buff.unlink() for buff in self._membuffs]
 
     def _get_shm_buffs(self):
         """ Create two shared memory buffers according to the number of bodies present and

@@ -57,7 +57,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.stat_q = Queue()
 
         #       TODO: Here the model process will be spawned:
-        self.model = SimSystem(self.comm_q, self.stat_q, None, None, fuse_multi=True)
+        self.model = SimSystem(self.comm_q, self.stat_q, None, None, use_multi=True)
         # self.model.load_from_names()
         self.body_names = self.model.body_names
 
@@ -81,6 +81,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.visuals = StarSystemVisuals(self.body_names)
         self.visuals.generate_visuals(self.canvas.view,
                                       self.model.get_agg_fields(self._vizz_fields2agg))
+        print(f"{self.model.get_agg_fields(self._vizz_fields2agg)}")
 
         self._setup_layout()
         self.controls.init_controls(self.body_names, self.cameras.cam_ids)
