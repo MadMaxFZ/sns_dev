@@ -83,7 +83,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.visuals.generate_visuals(self.canvas.view,
                                       self.model.get_agg_fields(self._vizz_fields2agg))
 
-        print(f"{self.model.get_agg_fields(self._vizz_fields2agg)}")
+        # print(f"{self.model.get_agg_fields(self._vizz_fields2agg)}")
 
         # Need to remember that 'canvas' is CanvasWrapper!
         self.cameras = self.canvas.cam_set

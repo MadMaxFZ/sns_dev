@@ -2,10 +2,12 @@
 import logging
 import time
 import psygnal
+import numpy as np
 from astropy.time import Time, TimeDeltaSec
 from multiprocessing import Queue
 from simobj_dict import SimObjectDict
 from multiprocessing import shared_memory as shm
+from datastore import vec_type
 # from poliastro.bodies import Body
 # from PyQt5.QtCore import QObject
 
@@ -52,12 +54,12 @@ class SimSystem(SimObjectDict):
         self.load_from_names()
 
         #   determine the bytes needed to hold one body state
-        self._state_size = self.data['Earth'].state.nbytes
+        self._buff_size = np.zeros((11, 3, 1), dtype=vec_type).nbytes
 
         #   create two areas of shared memory unless proper buffers are provided
         if buff0 and buff1:
             if isinstance(buff0, shm.SharedMemory) and isinstance(buff1, shm.SharedMemory):
-                if (buff0.size != self.num_bodies * self._state_size) or (buff0.size != self.num_bodies * self._state_size):
+                if (buff0.size != self._buff_size) or (buff1.size != self._buff_size):
                     print(f"WARNING: one or more buffers are not the correct size !!! Setting defaults...")
                     buff0, buff1 = self._get_shm_buffs()
 
@@ -71,10 +73,9 @@ class SimSystem(SimObjectDict):
         self._membuffs = [buff0, buff1]
         self._curr_buff = 0
         self._state_buffer = self._membuffs[self._curr_buff].buf
-
+        print(f"Buffer Shape: {self._state_buffer.shape}")
         #   run an initial cycle of the states to make sure something is there
         self.update_state(self.epoch)
-        self._state_buffer = self.state.copy()
 
     # def __del__(self):
     #     """ Make sure the SharedMemory gets deallocated
@@ -82,6 +83,13 @@ class SimSystem(SimObjectDict):
     #
         # [buff.close() for buff in self._membuffs]
         # [buff.unlink() for buff in self._membuffs]
+
+    def update_state(self, epoch):
+        super().update_state(epoch)
+        self._state_buffer = self.state.copy()
+        # print(f"STATE_BUFFER: {self._state_buffer}")
+        print(f"--> SHAPE: {self._state_buffer.shape}")
+        pass
 
     def _get_shm_buffs(self):
         """ Create two shared memory buffers according to the number of bodies present and
@@ -92,10 +100,10 @@ class SimSystem(SimObjectDict):
         """
         b0 = shm.SharedMemory(create=True,
                               name="state_buff0",
-                              size=self.num_bodies * self._state_size)
+                              size=self._buff_size)
         b1 = shm.SharedMemory(create=True,
                               name="state_buff1",
-                              size=self.num_bodies * self._state_size)
+                              size=self._buff_size)
         return b0, b1
 
     def get_agg_fields(self, field_ids):
