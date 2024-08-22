@@ -41,7 +41,11 @@ class MainQtWindow(QtWidgets.QMainWindow):
     def __init__(self, _body_names=None, *args, **kwargs):
         """
             Here we initialize the primary QMainWindow that will interface to the Simulation.
-
+            TODO :: Refactor this module to remove any methods that do not need to be in here,
+                    moving those methods to a more appropriate location, in particular the
+                    Controls or CameraSet classes. CameraSet should probably be removed altogether,
+                    in favor of a simpler method of storing the camera type and state for each ViewBox
+                    in use. As much of the operations involving widgets should exist in the Controls class.
         Parameters
         ----------
         _body_names :
@@ -66,9 +70,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         #       CONSIDER:   Encapsulating the CanvasWrapper instance inside the
         #                   StarSystemVisuals class, which would assume the role of CanvasWrapper
         self.canvas = CanvasWrapper(self.on_draw_sig, self.vispy_keypress)
-        self.cameras = self.canvas.cam_set
-        self.controls = Controls()
-        self.ui = self.controls.ui
+
         self.central_widget = QtWidgets.QWidget(self)
         self.timer = QtCore.QTimer()
         self.timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
@@ -83,9 +85,11 @@ class MainQtWindow(QtWidgets.QMainWindow):
                                       self.model.get_agg_fields(self._vizz_fields2agg))
         print(f"{self.model.get_agg_fields(self._vizz_fields2agg)}")
 
+        self.cameras = self.canvas.cam_set
+        self.controls = Controls()
+        self.ui = self.controls.ui
         self._setup_layout()
         self.controls.init_controls(self.body_names, self.cameras.cam_ids)
-        self._connect_slots()
         self.cameras.curr_cam.set_range(self.visuals.vizz_bounds,
                                         self.visuals.vizz_bounds,
                                         self.visuals.vizz_bounds, )
@@ -93,6 +97,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.cameras.curr_cam.set_state(DEF_CAM_STATE)
         self.curr_simbod = self.model['Earth']
         self.reset_rotation()
+        self._connect_slots()
         # noinspection PyUnresolvedReferences
         self.main_window_ready.emit('Earth')
         self._last_elapsed = 0.0
