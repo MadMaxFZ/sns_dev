@@ -45,7 +45,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
                     moving those methods to a more appropriate location, in particular the
                     Controls or CameraSet classes. CameraSet should probably be removed altogether,
                     in favor of a simpler method of storing the camera type and state for each ViewBox
-                    in use. As much of the operations involving widgets should exist in the Controls class.
+                    in use. As much of the operations involving widget s should exist in the Controls class.
         Parameters
         ----------
         _body_names :
@@ -72,36 +72,42 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.canvas = CanvasWrapper(self.on_draw_sig, self.vispy_keypress)
 
         self.central_widget = QtWidgets.QWidget(self)
-        self.timer = QtCore.QTimer()
-        self.timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
 
         #       TODO:   Encapsulate the vizz_fields2agg inside StartSystemVisuals class
         self._vizz_fields2agg = ('pos', 'radius', 'body_alpha', 'track_alpha', 'body_mark',
                                  'body_color', 'track_data', 'tex_data', 'is_primary',
                                  'axes', 'rot', 'parent_name'
                                  )
+
         self.visuals = StarSystemVisuals(self.body_names)
         self.visuals.generate_visuals(self.canvas.view,
                                       self.model.get_agg_fields(self._vizz_fields2agg))
+
         print(f"{self.model.get_agg_fields(self._vizz_fields2agg)}")
 
+        # Need to remember that 'canvas' is CanvasWrapper!
         self.cameras = self.canvas.cam_set
         self.controls = Controls()
         self.ui = self.controls.ui
         self._setup_layout()
         self.controls.init_controls(self.body_names, self.cameras.cam_ids)
+
+        # TODO :: This should happen inside the canvas
         self.cameras.curr_cam.set_range(self.visuals.vizz_bounds,
                                         self.visuals.vizz_bounds,
                                         self.visuals.vizz_bounds, )
         # set the initial camera position in the ecliptic looking towards the primary
         self.cameras.curr_cam.set_state(DEF_CAM_STATE)
+        self.rpy_delta = np.zeros((3, 1), dtype=np.float64)
+
         self.curr_simbod = self.model['Earth']
         self.reset_rotation()
-        self._connect_slots()
         # noinspection PyUnresolvedReferences
-        self.main_window_ready.emit('Earth')
+        self.timer = QtCore.QTimer()
+        self.timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
         self._last_elapsed = 0.0
-        self.rpy_delta = np.zeros((3, 1), dtype=np.float64)
+        self._connect_slots()
+        self.main_window_ready.emit('Earth')
 
     def _setup_layout(self):
         # TODO:     Learn more about the QSplitter object

@@ -25,9 +25,9 @@ class Controls(QtWidgets.QWidget):
         self.ui = Ui_SNS_DataPanels()
         self.ui.setupUi(self)
         self.ui_obj_dict = self.ui.__dict__
-        self._pattern_names = ['attr_', 'elem_', 'cam_', 'elem_coe_', 'elem_pqw_', 'elem_rv_',
+        self._prefixes = ['attr_', 'elem_', 'cam_', 'elem_coe_', 'elem_pqw_', 'elem_rv_',
                                'time_', 'btn_', 'axis_', 'key_']
-        self._widget_groups = self._scanUi_4panels(patterns=self._pattern_names)
+        self._widget_groups = self._scanUi_4panels(patterns=self._prefixes)
         print(f'{len(self._widget_groups)} widget groups (panels) defined...\n\t-> CONTROLS initialized...')
         self._active_body = 'Earth'
         self._active_cam = 'def_cam'

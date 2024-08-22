@@ -7,12 +7,12 @@ from PyQt5 import QtWidgets, QtCore
 # from PyQt5.QtCore import QThread
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QCoreApplication
 from multiprocessing import Queue, shared_memory as shm
-from datastore import vec_type
+from ..src import datastore
 
 if __name__ == "__main__":
     # Here the message Queues and SharedMemory should be crated for use in the functions above:
     cmd, out = Queue(), Queue()
-    buffer = np.zeros((3, 2), dtype=vec_type)
+    buffer = np.zeros((3, 2), dtype=datastore.vec_type)
     buff_size = buffer.nbytes
     buff_idx = 0
     print(f"BUFFER_SIZE = {buff_size}")

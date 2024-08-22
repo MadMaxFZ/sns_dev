@@ -37,6 +37,7 @@ class SimSystem(SimObjectDict):
         super(SimSystem, self).__init__([], *args, **kwargs)
         self._t1 = time.perf_counter()
         self._t0 = self._t1
+
         print(f'SimSystem declaration took {(self._t1 - self._base_t) * 1e-06:.4f} seconds...')
         # TODO :: Instead of using the following tuple, simply collect the essential fields,
         #         then collect one or more of the orbital elements type. 'rad0' is static.
@@ -46,10 +47,9 @@ class SimSystem(SimObjectDict):
                                   )
         self.comm_q = comm_q
         self.stat_q = stat_q
+
         #   this method loads up all the default planets with no argument
         self.load_from_names()
-        #   run an initial cycle of the states to make sure something is there
-        self.update_state(self.epoch)
 
         #   determine the bytes needed to hold one body state
         self._state_size = self.data['Earth'].state.nbytes
@@ -70,7 +70,11 @@ class SimSystem(SimObjectDict):
 
         self._membuffs = [buff0, buff1]
         self._curr_buff = 0
-        self._state_buffers = None
+        self._state_buffer = self._membuffs[self._curr_buff].buf
+
+        #   run an initial cycle of the states to make sure something is there
+        self.update_state(self.epoch)
+        self._state_buffer = self.state.copy()
 
     # def __del__(self):
     #     """ Make sure the SharedMemory gets deallocated
