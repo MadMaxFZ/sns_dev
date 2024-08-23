@@ -17,8 +17,11 @@ logging.basicConfig(filename="logs/mainsimwin.log",
 class CanvasWrapper:
     """     This class simply encapsulates the simulation, which resides within
         the vispy SceneCanvas object.
+
+        TODO:: Be prepared to add some methods to this class as well as to remove
+               the CameraSet class from the project and instead simply track what
+               camera that a particular view is using.
     """
-    #   TODO:: Be prepared to add some methods to this class
     qt_keypress = pyqtSignal(str)
     qt_mouse_move = pyqtSignal()
 

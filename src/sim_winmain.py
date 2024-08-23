@@ -69,15 +69,16 @@ class MainQtWindow(QtWidgets.QMainWindow):
         #       CONSIDER:   Encapsulating the CanvasWrapper instance inside the
         #                   StarSystemVisuals class, which would assume the role of CanvasWrapper
         self.canvas = CanvasWrapper(self.on_draw_sig, self.vispy_keypress)
-
         self.central_widget = QtWidgets.QWidget(parent=self)
         self.timer = QtCore.QTimer()
         self.timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
+        self._last_elapsed = 0.0
         self.timer_paused = True
         self.interval = 10
         self.tw_hold = 0
         self.comm_q = Queue()
         self.stat_q = Queue()
+        self.rpy_delta = np.zeros((3, 1), dtype=np.float64)
 
         #       TODO: Here the model process will be spawned:
         self.model = SimSystem(in_q=self.comm_q, out_q=self.stat_q, use_multi=True)
@@ -107,8 +108,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self._connect_slots()
         # noinspection PyUnresolvedReferences
         self.main_window_ready.emit('Earth')
-        self._last_elapsed = 0.0
-        self.rpy_delta = np.zeros((3, 1), dtype=np.float64)
+
 
     def get_user_bodies(self):
 
