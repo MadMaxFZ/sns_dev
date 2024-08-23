@@ -189,7 +189,7 @@ class SimObjectDict(dict):
 
     @property
     def state(self):
-        return [sb.state_matrix for sb in self.data.values()]
+        return np.array([sb.state_matrix for sb in self.data.values()])
 
     @property
     def track_data(self):

@@ -61,10 +61,10 @@ class _Bar(QtWidgets.QWidget):
         for n in range(n_steps_to_draw):
             brush.setColor(QtGui.QColor(self.steps[n]))
             rect = QtCore.QRect(
-                self._padding,
-                self._padding + d_height - ((1 + n) * step_size) + bar_spacer,
-                d_width,
-                bar_height
+                int(self._padding),
+                int(self._padding + d_height - ((1 + n) * step_size) + bar_spacer),
+                int(d_width),
+                int(bar_height)
             )
             painter.fillRect(rect, brush)
 
@@ -151,3 +151,12 @@ class PowerBar(QtWidgets.QWidget):
     def setBackgroundColor(self, color):
         self._bar._background_color = QtGui.QColor(color)
         self._bar.update()
+
+
+if __name__ == "__main__":
+    from vispy.app import use_app
+    app = use_app("pyqt5")
+    app.create()
+    pwr_bar = PowerBar()
+    pwr_bar.show()
+    app.run()

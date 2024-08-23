@@ -12,12 +12,13 @@ from vispy.visuals import CompoundVisual
 from vispy.scene.visuals import (create_visual_node,
                                  Markers, XYZAxis,
                                  Compound, Polygon)
-# from starsys_data import vec_type
+from datastore import vec_type
 from simbody_visual import Planet
 from sim_skymap import SkyMap
 from sim_body import SimBody, MIN_FOV
 from PyQt5.QtCore import pyqtSlot
 from sim_camset import CameraSet
+from multiprocessing import shared_memory as shm
 
 # these quantities can be served from DATASTORE class
 MIN_SYMB_SIZE = 5
@@ -81,6 +82,7 @@ class StarSystemVisuals:
         body_names   : list of str
             list of SimBody names to make visuals for
         """
+        self._new_states = None
         self._IS_INITIALIZED = False
         self._body_names   = []
         self._bods_pos     = []
@@ -107,7 +109,10 @@ class StarSystemVisuals:
         if body_names:
             self._body_names = [n for n in body_names]
         self._body_count   = len(self._body_names)
-        self._bods_pos     = []
+        self._bods_pos     = None
+        self._buff1 = None
+        self._buff0 = None
+        self._new_states = None
 
     '''--------------------------- END StarSystemVisuals.__init__() -----------------------------------------'''
 
@@ -135,7 +140,17 @@ class StarSystemVisuals:
         self._frame_viz.transform = MT()
         self._frame_viz.transform.scale((1e+09, 1e+09, 1e+09))
 
-        self._bods_pos = list(self._agg_cache['pos'].values())
+        self._buff0 = shm.SharedMemory(create=False,
+                                       name="state_buff0")
+        self._buff1 = shm.SharedMemory(create=False,
+                                       name="state_buff1")
+
+        self._bods_pos = np.ndarray((11, 3, 3), dtype=vec_type)
+        self._bods_pos = np.array(self._buff0.buf)
+        print(f"[:, :,] => {self._bods_pos.shape}")
+        # check = [self._bods_pos[n, 1] for n in range(0, self._body_count - 1)]
+        # print(f"[:, :,] => {check.shape}")
+        # self._bods_pos = list(self._agg_cache['pos'].values())
 
         for name in self._body_names:
             self._generate_planet_viz(body_name=name)
@@ -224,16 +239,21 @@ class StarSystemVisuals:
 
         self._agg_cache = agg_data
 
-        self._bods_pos = list(self._agg_cache['pos'].values())
+        self._new_states = self._buff0.buf
+        print(f"new_states.shape = {self._new_states.shape}")
+        pass
+        # self._bods_pos = list(self._agg_cache['pos'].values())
 
-        for sb_name in self._body_names:                                                    # <--
+        for n, sb_name in enumerate(self._body_names):                                                    # <--
             x_ax = self._agg_cache['axes'][sb_name][0]
             y_ax = self._agg_cache['axes'][sb_name][1]
             z_ax = self._agg_cache['axes'][sb_name][2]
-            RA   = self._agg_cache['rot'][sb_name][0]
-            DEC  = self._agg_cache['rot'][sb_name][1]
-            W    = self._agg_cache['rot'][sb_name][2]
-            pos  = self._agg_cache['pos'][sb_name]
+            RA, DEC, W = self._new_states[n, :, 2]
+            # RA   = self._agg_cache['rot'][sb_name][0]
+            # DEC  = self._agg_cache['rot'][sb_name][1]
+            # W    = self._agg_cache['rot'][sb_name][2]
+            # pos  = self._agg_cache['pos'][sb_name]
+            pos = self._bods_pos[n]
             parent = self._agg_cache['parent_name'][sb_name]
             is_primary = self._agg_cache['is_primary'][sb_name]
 
