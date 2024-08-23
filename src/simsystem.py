@@ -37,6 +37,8 @@ class SimSystem(SimObjectDict):
         super(SimSystem, self).__init__([], *args, **kwargs)
         self._t1 = time.perf_counter()
         self._t0 = self._t1
+        self.comm_q = in_q
+        self.stat_q = out_q
         print(f'SimSystem declaration took {(self._t1 - self._base_t) * 1e-06:.4f} seconds...')
         # TODO :: Instead of using the following tuple, simply collect the essential fields,
         #         then collect one or more of the orbital elements type. 'rad0' is static.
@@ -44,8 +46,10 @@ class SimSystem(SimObjectDict):
                                   'elem_coe_', 'elem_pqw_', 'elem_rv',
                                   'is_primary',
                                   )
-        self.comm_q = in_q
-        self.stat_q = out_q
+
+        # TODO :: move the remainder of this method into its own method to be called once the
+        #         bodies tobe included the system have been selected.
+
         #   this method loads up all the default planets with no argument
         self.load_from_names()
         #   run an initial cycle of the states to make sure something is there
