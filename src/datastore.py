@@ -15,7 +15,7 @@ from poliastro.frames.fixed import MoonFixed as LunaFixed
 from vispy.util.quaternion import Quaternion
 from poliastro.core.fixed import *
 from vispy.geometry.meshdata import MeshData
-from viz_functs import get_tex_data
+# from viz_functs import get_tex_data
 
 SNS_SOURCE_PATH = os.curdir + '/'      # "c:\\_Projects\\sns2\\src\\"
 os.chdir(SNS_SOURCE_PATH)
