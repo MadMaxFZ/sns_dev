@@ -212,11 +212,11 @@ class SystemDataStore:
             # configure texture data
             try:
                 _tex_fname = _tex_path + _tex_fnames[_tex_idx[idx]]  # get path of indexed filename
-            except:
+            except IndexError:
                 _tex_fname = _tex_path + _def_tex_fname
 
             # the textures should be loaded later on
-            _tex_dat_set.update({_bod_name: get_tex_data(fname=_tex_fname)})
+            _tex_dat_set.update({_bod_name: get_texture_data(fname=_tex_fname)})
             logging.debug("_tex_dat_set[" + str(idx) + "] = " + str(_tex_fname))
 
             # configure radius data
