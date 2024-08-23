@@ -375,7 +375,9 @@ class SystemDataStore:
     def model_data_group_keys(self):
         return tuple(['attr_', 'elem_coe', 'elem_pqw', 'elem_rv', 'syst_', 'vizz_'])
 
+
 """------------------------  UTILITY FUNCTIONS --------------------------------------------"""
+
 
 def quat_to_rpy(quat):
     if quat is not None:
@@ -664,7 +666,6 @@ log_config = {
         },
     },
 }
-
 
 
 if __name__ == "__main__":

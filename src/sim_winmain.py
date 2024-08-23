@@ -32,13 +32,14 @@ class MainQtWindow(QtWidgets.QMainWindow):
     panel_refreshed = pyqtSignal(str)
     on_draw_sig = psygnal.Signal(str)
     vispy_keypress = psygnal.Signal(str)
+    datastore = SystemDataStore()
 
     """     A dictionary of labels to act as keys to reference the data stored in the SimSystem model:
         The first four data elements must be computed every cycle regardless, while the remaining elements will
         only require updating if they are modified by the user at runtime. (Maybe separate the two sets?)
     """
 
-    def __init__(self, _body_names=None, *args, **kwargs):
+    def __init__(self, _user_bods=None, *args, **kwargs):
         """
             Here we initialize the primary QMainWindow that will interface to the Simulation.
             TODO :: Refactor this module to remove any methods that do not need to be in here,
@@ -48,22 +49,20 @@ class MainQtWindow(QtWidgets.QMainWindow):
                     in use. As much of the operations involving widgets should exist in the Controls class.
         Parameters
         ----------
-        _body_names :
+        _user_bods :
         args        :
         kwargs      :
         """
         super(MainQtWindow, self).__init__(*args, **kwargs)
         self.setWindowTitle("SPACE NAVIGATION SIMULATOR, (c)2024 Max S. Whitten")
-        self.timer_paused = True
-        self.interval = 10
-        self.tw_hold = 0
-        self.comm_q = Queue()
-        self.stat_q = Queue()
+       # self.model.load_from_names()
+        if _user_bods is None:
+            _user_bods = self.get_user_bodies()
 
-        #       TODO: Here the model process will be spawned:
-        self.model = SimSystem(self.comm_q, self.stat_q, None, None, use_multi=True)
-        # self.model.load_from_names()
-        self.body_names = self.model.body_names
+            if _user_bods is None:
+                self.body_names = self.datastore.body_names
+            else:
+                self.body_names = _user_bods
 
         #       TODO:   Encapsulate the creation of the CameraSet instance inside the
         #               CanvasWrapper class, which will expose methods to manipulate the cameras.
@@ -71,9 +70,17 @@ class MainQtWindow(QtWidgets.QMainWindow):
         #                   StarSystemVisuals class, which would assume the role of CanvasWrapper
         self.canvas = CanvasWrapper(self.on_draw_sig, self.vispy_keypress)
 
-        self.central_widget = QtWidgets.QWidget(self)
+        self.central_widget = QtWidgets.QWidget(parent=self)
         self.timer = QtCore.QTimer()
         self.timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
+        self.timer_paused = True
+        self.interval = 10
+        self.tw_hold = 0
+        self.comm_q = Queue()
+        self.stat_q = Queue()
+
+        #       TODO: Here the model process will be spawned:
+        self.model = SimSystem(in_q=self.comm_q, out_q=self.stat_q, use_multi=True)
 
         #       TODO:   Encapsulate the vizz_fields2agg inside StartSystemVisuals class
         self._vizz_fields2agg = ('pos', 'radius', 'body_alpha', 'track_alpha', 'body_mark',
@@ -102,6 +109,10 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.main_window_ready.emit('Earth')
         self._last_elapsed = 0.0
         self.rpy_delta = np.zeros((3, 1), dtype=np.float64)
+
+    def get_user_bodies(self):
+
+        return None
 
     def _setup_layout(self):
         # TODO:     Learn more about the QSplitter object

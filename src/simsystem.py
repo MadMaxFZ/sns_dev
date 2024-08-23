@@ -21,15 +21,15 @@ class SimSystem(SimObjectDict):
     initialized = psygnal.Signal(list)
     panel_data = psygnal.Signal(list, list)
 
-    def __init__(self, comm_q, stat_q, buff0=None, buff1=None, *args, **kwargs):
+    def __init__(self, in_q, out_q, buff0=None, buff1=None, *args, **kwargs):
         """
             Initialize the star system model. Two Queues are passed to provide
             communication with the main process along with two shared memory buffers.
 
         Parameters
         ----------
-        comm_q          : A Queue from which commands are received
-        stat_q          : A Queue from which results are emitted
+        in_q          : A Queue from which commands are received
+        out_q          : A Queue from which results are emitted
         buff0, buff1    : Two shared memory buffers of the same correct size
 
         """
@@ -44,8 +44,8 @@ class SimSystem(SimObjectDict):
                                   'elem_coe_', 'elem_pqw_', 'elem_rv',
                                   'is_primary',
                                   )
-        self.comm_q = comm_q
-        self.stat_q = stat_q
+        self.comm_q = in_q
+        self.stat_q = out_q
         #   this method loads up all the default planets with no argument
         self.load_from_names()
         #   run an initial cycle of the states to make sure something is there

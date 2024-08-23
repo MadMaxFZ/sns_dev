@@ -105,7 +105,7 @@ class StarSystemVisuals:
         self._curr_t       = None
 
         if body_names:
-            self._body_names   = [n for n in body_names]
+            self._body_names = [n for n in body_names]
         self._body_count   = len(self._body_names)
         self._bods_pos     = []
 
