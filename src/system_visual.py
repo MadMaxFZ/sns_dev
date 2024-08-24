@@ -105,16 +105,36 @@ class StarSystemVisuals:
         self.dist_unit     = u.km       # TODO: resolve any confusion with the fucking units...!
         self._last_t       = None
         self._curr_t       = None
+        self.x_ax = vec_type([1, 0, 0])
+        self.y_ax = vec_type([0, 1, 0])
+        self.z_ax = vec_type([0, 0, 1])
 
         if body_names:
             self._body_names   = [n for n in body_names]
         self._body_count   = len(self._body_names)
         self._bods_pos     = None
-        self._buff1 = None
-        self._buff0 = None
+        self._model_databuff = None
         self._new_states = None
 
     '''--------------------------- END StarSystemVisuals.__init__() -----------------------------------------'''
+
+    def attach_databuff(self, name, shape, dtype):
+        """
+
+        """
+        self._model_databuff = shm.SharedMemory(create=False,
+                                                name=name,
+                                                size=np.dtype(dtype).itemsize * np.prod(shape))
+        self._new_states = np.ndarray(shape,
+                                      dtype=dtype,
+                                      buffer=self._model_databuff.buf)
+        pass
+
+    def detach_databuff(self, name):
+        self._new_states = None
+        self._model_databuff.close()
+        self._model_databuff.unlink()
+        pass
 
     def generate_visuals(self, view,  agg_data):
         """
@@ -140,14 +160,14 @@ class StarSystemVisuals:
         self._frame_viz.transform = MT()
         self._frame_viz.transform.scale((1e+09, 1e+09, 1e+09))
 
-        self._buff0 = shm.SharedMemory(create=False,
-                                       name="state_buff0")
-        self._buff1 = shm.SharedMemory(create=False,
-                                       name="state_buff1")
+        # self._buff0 = shm.SharedMemory(create=False,
+        #                                name="state_buff0")
+        # self._buff1 = shm.SharedMemory(create=False,
+        #                                name="state_buff1")
 
-        self._bods_pos = np.ndarray((11, 3, 3), dtype=vec_type)
-        self._bods_pos = np.array(self._buff0.buf)
-        print(f"[:, :,] => {self._bods_pos.shape}")
+        # self._bods_pos = np.ndarray((11, 3, 3), dtype=vec_type)
+        # self._bods_pos = np.array(self._buff0.buf)
+        # print(f"[:, :,] => {self._bods_pos.shape}")
         # check = [self._bods_pos[n, 1] for n in range(0, self._body_count - 1)]
         # print(f"[:, :,] => {check.shape}")
         # self._bods_pos = list(self._agg_cache['pos'].values())
@@ -245,9 +265,9 @@ class StarSystemVisuals:
         # self._bods_pos = list(self._agg_cache['pos'].values())
 
         for n, sb_name in enumerate(self._body_names):                                                    # <--
-            x_ax = self._agg_cache['axes'][sb_name][0]
-            y_ax = self._agg_cache['axes'][sb_name][1]
-            z_ax = self._agg_cache['axes'][sb_name][2]
+            # self.x_ax = self._agg_cache['axes'][sb_name][0]
+            # self.y_ax = self._agg_cache['axes'][sb_name][1]
+            # self.z_ax = self._agg_cache['axes'][sb_name][2]
             RA, DEC, W = self._new_states[n, :, 2]
             # RA   = self._agg_cache['rot'][sb_name][0]
             # DEC  = self._agg_cache['rot'][sb_name][1]
@@ -260,9 +280,9 @@ class StarSystemVisuals:
             if self._planets[sb_name].visible:
                 xform = self._planets[sb_name].transform
                 xform.reset()
-                xform.rotate(W * np.pi / 180, z_ax)
-                xform.rotate(DEC * np.pi / 180, y_ax)
-                xform.rotate(RA * np.pi / 180, x_ax)
+                xform.rotate(  W * np.pi / 180, self.z_ax)
+                xform.rotate(DEC * np.pi / 180, self.y_ax)
+                xform.rotate( RA * np.pi / 180, self.x_ax)
                 # if not is_primary:
                 #     xform.scale(_SCALE_FACTOR)
 

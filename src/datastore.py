@@ -16,6 +16,7 @@ from vispy.util.quaternion import Quaternion
 from poliastro.core.fixed import *
 from vispy.geometry.meshdata import MeshData
 from viz_functs import get_tex_data
+from multiprocessing import shared_memory as shm
 
 SNS_SOURCE_PATH = os.curdir + '/'      # "c:\\_Projects\\sns2\\src\\"
 os.chdir(SNS_SOURCE_PATH)
@@ -375,7 +376,23 @@ class SystemDataStore:
     def model_data_group_keys(self):
         return tuple(['attr_', 'elem_coe', 'elem_pqw', 'elem_rv', 'syst_', 'vizz_'])
 
+
 """------------------------  UTILITY FUNCTIONS --------------------------------------------"""
+
+
+def create_shared_memory(self, name, shape, dtype):
+    """
+
+    """
+    sh_mem = shm.SharedMemory(create=True,
+                              name=name,
+                              size=np.dtype(dtype).itemsize * np.prod(shape))
+    np_array = np.ndarray(shape,
+                          dtype=dtype,
+                          buffer=sh_mem.buf)
+
+    return np_array, sh_mem
+
 
 def quat_to_rpy(quat):
     if quat is not None:

@@ -7,7 +7,7 @@ from astropy.time import Time, TimeDeltaSec
 from multiprocessing import Queue
 from simobj_dict import SimObjectDict
 from multiprocessing import shared_memory as shm
-from datastore import vec_type
+from datastore import vec_type, create_shared_memory
 # from poliastro.bodies import Body
 # from PyQt5.QtCore import QObject
 
@@ -49,62 +49,23 @@ class SimSystem(SimObjectDict):
                                   )
         self.comm_q = comm_q
         self.stat_q = stat_q
+        self._state_buffer = None
+        self._model_shared = None
+        self._shmem_name   = "body_states"
 
-        #   this method loads up all the default planets with no argument
-        self.load_from_names()
+        # self.update_state(self.epoch)
 
-        #   determine the bytes needed to hold one body state
-        self._buff_size = np.zeros((11, 3, 1), dtype=vec_type).nbytes
-
-        #   create two areas of shared memory unless proper buffers are provided
-        if buff0 and buff1:
-            if isinstance(buff0, shm.SharedMemory) and isinstance(buff1, shm.SharedMemory):
-                if (buff0.size != self._buff_size) or (buff1.size != self._buff_size):
-                    print(f"WARNING: one or more buffers are not the correct size !!! Setting defaults...")
-                    buff0, buff1 = self._get_shm_buffs()
-
-            else:
-                raise Exception(f"ERROR. Type {type(buff0)} is not shm.SharedMemory !!!")
-
-        else:
-            print(f"WARNING: No memory buffer provided !!!\n>>>>>>>> I suppose we must generate one...")
-            buff0, buff1 = self._get_shm_buffs()
-
-        self._membuffs = [buff0, buff1]
-        self._curr_buff = 0
-        self._state_buffer = self._membuffs[self._curr_buff].buf
-        print(f"Buffer Shape: {self._state_buffer.shape}")
-        #   run an initial cycle of the states to make sure something is there
-        self.update_state(self.epoch)
-
-    # def __del__(self):
-    #     """ Make sure the SharedMemory gets deallocated
-    #     """
-    #
-        # [buff.close() for buff in self._membuffs]
-        # [buff.unlink() for buff in self._membuffs]
+    def _get_shm_buffs(self):
+        """ Create a shared memory buffer according to the number of bodies present.
+        """
+        self._state_buffer, self._model_shared = create_shared_memory(name=self._shmem_name,
+                                                                      shape=(self.num_bodies, 3, 3),
+                                                                      dtype=np.float64)
 
     def update_state(self, epoch):
         super().update_state(epoch)
         self._state_buffer = self.state.copy()
-        # print(f"STATE_BUFFER: {self._state_buffer}")
-        print(f"--> SHAPE: {self._state_buffer.shape}")
         pass
-
-    def _get_shm_buffs(self):
-        """ Create two shared memory buffers according to the number of bodies present and
-            the size of state information for each body.
-
-            ReturnsS bo, b1 are two equally sized shared memory buffers,
-            explicitly destroyed in __del__
-        """
-        b0 = shm.SharedMemory(create=True,
-                              name="state_buff0",
-                              size=self._buff_size)
-        b1 = shm.SharedMemory(create=True,
-                              name="state_buff1",
-                              size=self._buff_size)
-        return b0, b1
 
     def get_agg_fields(self, field_ids):
         # res = {'primary_name': self.system_primary.name}
