@@ -21,6 +21,8 @@ logging.config.dictConfig(log_config)
 QT_NATIVE = False
 STOP_IT = True
 DO_PROFILE = False
+MAX_SUN2PLUTO = 8.0e+09
+S2P_RANGE = (-MAX_SUN2PLUTO, MAX_SUN2PLUTO)
 
 
 class MainQtWindow(QtWidgets.QMainWindow):
@@ -93,9 +95,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.controls.init_controls(self.body_names, self.cameras.cam_ids)
 
         # TODO :: This should happen inside the canvas
-        self.cameras.curr_cam.set_range(self.visuals.vizz_bounds,
-                                        self.visuals.vizz_bounds,
-                                        self.visuals.vizz_bounds, )
+        self.cameras.curr_cam.set_range(S2P_RANGE, S2P_RANGE, S2P_RANGE)
         # set the initial camera position in the ecliptic looking towards the primary
         self.cameras.curr_cam.set_state(DEF_CAM_STATE)
         self.rpy_delta = np.zeros((3, 1), dtype=np.float64)
