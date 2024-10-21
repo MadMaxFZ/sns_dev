@@ -55,7 +55,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         """
         super(MainQtWindow, self).__init__(*args, **kwargs)
         self.setWindowTitle("SPACE NAVIGATION SIMULATOR, (c)2024 Max S. Whitten")
-       # self.model.load_from_names()
+        # self.model.load_from_names()
         if _user_bods is None:
             _user_bods = self.get_user_bodies()
 
