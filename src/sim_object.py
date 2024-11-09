@@ -60,7 +60,7 @@ class SimObject(ABC):
         self._field_dict = None
         self._periods    = 365
         self._o_period   = 1.0 * u.year
-        self._spacing    = self._o_period.to(u.d) / self._periods
+        self._spacing    = self._o_period.to(u.d) / self._periods       # approx 1 day
         self._end_epoch  = self._epoch + self._periods * self._spacing
         self._axes       = np.identity(4, dtype=np.float64)
         # for some reason this slowed things down a lot
@@ -87,6 +87,7 @@ class SimObject(ABC):
     @abstractmethod
     def update_state(self, epoch=None):
         # TODO :: Add a default state update here
+        #           However, we have no access to other SimObjects here...
         pass
 
     @property
@@ -97,7 +98,7 @@ class SimObject(ABC):
     def dist_unit(self):
         return self._dist_unit
 
-    # @dist_unit.setter
+    # @dist_unit.setter                 If the dist unit changes, must refactor attribute values
     # def dist_unit(self, new_du):
     #     if type(new_du) == u.Unit:
     #         self._dist_unit = new_du
@@ -210,7 +211,7 @@ class SimObject(ABC):
 
     @property
     def dist2parent(self):
-        return np.linalg.norm(self.pos)         # dist unit here??
+        return np.linalg.norm(self.pos) # * self._dist_unit
 
     @property
     def vel(self):
@@ -237,4 +238,4 @@ if __name__ == "__main__":
 
 
     main()
-    print("SimBody doesn't really do much...")
+    print("SimObject doesn't really do much as an abstract base class...")

@@ -17,7 +17,7 @@ from poliastro.core.fixed import *
 from vispy.geometry.meshdata import MeshData
 # from viz_functs import get_tex_data
 
-SNS_SOURCE_PATH = os.curdir + '/'      # "c:\\_Projects\\sns2\\src\\"
+SNS_SOURCE_PATH = "c:\\_Projects\\sns_dev\\src\\"      # "c:\\_Projects\\sns2\\src\\"
 os.chdir(SNS_SOURCE_PATH)
 
 logging.basicConfig(filename=SNS_SOURCE_PATH + "../logs/sns_defs.log",
@@ -570,21 +570,20 @@ def _oblate_sphere(rows=4, cols=None, radius=(1200 * u.km,) * 3, offset=False):
                 )
 
 
-def round_off(val):
-    n_digits = 3
+def round_off(val, n_digits=3):
     factor = pow(10, n_digits)
     try:
         data_unit = val / val.value
         res = (int(val.value * factor) / factor) * data_unit
 
-    except:
+    except AttributeError:
         res = val
 
     return res
 
 
 def show_it(value):
-    # print(f'VAL: {value}, TYPE(VAL): {type(value)}')
+    # print(f"VAL: {value}, TYPE(VAL): {type(value)}")
     pass
 
 
@@ -669,12 +668,33 @@ log_config = {
 
 
 if __name__ == "__main__":
+    import pickle
+
     def main():
         logging.debug("-------->> RUNNING SYSTEM_DATASTORE() STANDALONE <<---------------")
 
         dict_store = SystemDataStore()
+
         print("dict store:", dict_store)
-        print(dict_store.body_data("Earth"))
+        print(dict_store.body_data["Earth"])
+
+        with open("data_store.pkl", "wb") as f:
+            pickle.dump(dict_store, f)
+
+        print("Pickling completed....")
+        print("Recovering pickle...")
+
+        with open("data_store.pkl", "rb") as f:
+            data_recover = pickle.load(f)
+
+        print("dict recovery:", data_recover)
+        print(data_recover.body_data["Earth"])
+
+        if type(dict_store) == type(data_recover):
+            print("pickle/unpickle successful!!!")
+        else:
+            print("Something didn't match....")
+
         exit()
 
 

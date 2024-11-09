@@ -92,6 +92,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self.visuals.generate_visuals(self.canvas.view,
                                       self.model.get_agg_fields(self._vizz_fields2agg))
         print(f"{self.model.get_agg_fields(self._vizz_fields2agg)}")
+        print(f"{self._}")
 
         self.cameras = self.canvas.cam_set
         self.controls = Controls()
@@ -108,7 +109,6 @@ class MainQtWindow(QtWidgets.QMainWindow):
         self._connect_slots()
         # noinspection PyUnresolvedReferences
         self.main_window_ready.emit('Earth')
-
 
     def get_user_bodies(self):
 

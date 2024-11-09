@@ -21,15 +21,13 @@ class SimSystem(SimObjectDict):
     initialized = psygnal.Signal(list)
     panel_data = psygnal.Signal(list, list)
 
-    def __init__(self, in_q, out_q, buff0=None, buff1=None, *args, **kwargs):
+    def __init__(self, buff0=None, buff1=None, *args, **kwargs):
         """
             Initialize the star system model. Two Queues are passed to provide
             communication with the main process along with two shared memory buffers.
 
         Parameters
         ----------
-        in_q          : A Queue from which commands are received
-        out_q          : A Queue from which results are emitted
         buff0, buff1    : Two shared memory buffers of the same correct size
 
         """
@@ -37,8 +35,6 @@ class SimSystem(SimObjectDict):
         super(SimSystem, self).__init__([], *args, **kwargs)
         self._t1 = time.perf_counter()
         self._t0 = self._t1
-        self.comm_q = in_q
-        self.stat_q = out_q
         print(f'SimSystem declaration took {(self._t1 - self._base_t) * 1e-06:.4f} seconds...')
         # TODO :: Instead of using the following tuple, simply collect the essential fields,
         #         then collect one or more of the orbital elements type. 'rad0' is static.
@@ -66,7 +62,10 @@ class SimSystem(SimObjectDict):
                     buff0, buff1 = self._get_shm_buffs()
 
             else:
-                raise Exception(f"ERROR. Type {type(buff0)} is not shm.SharedMemory !!!")
+                buff0, buff1 = self._get_shm_buffs()
+                raise Exception(f"ERROR. Type {type(buff0)} or {type(buff1)} is not shm.SharedMemory !!!\n",
+                                f"Setting defaults...")
+
 
         else:
             print(f"WARNING: No memory buffer provided !!!\n>>>>>>>> I suppose we must generate one...")
