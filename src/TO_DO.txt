@@ -1,0 +1,21 @@
+#   Refactor SystemDataStore to have a more reasonable structure.
+
+#   Controller class object will run everything. It will launch the main window that will
+#   contain the menu, the controls and the main vispy view. Currently the main window and
+#   controls are implemented using with PyQt with the vispy view in a wrapper.
+
+#   Recover files for previous version of SpaceNavSim implemented using pyglet library,
+#   retrieving the modules that store the simulation data and main menu structure in
+#   a SQL database. The procedure to build the main menu from the database table must be
+#   refactored to build a PyQt main menu rather than  it's current form using Tkinter library.
+
+#   Refactor as needed to take advantage of the fact that the planets do not deviate much from
+#   their Keplerian approximations over the time span of 100,000 years. This should allow for
+#   much faster method to compute planetary states rapidly enough for proper frame rates.
+
+#   The previous refactor suggests a somewhat seperate method to maintain the states of the
+#   spacecraft present in the sim, incorporating their ability to maneuver. This should include an
+#   interface component to visualize proposed maneuvers and allow for adjustment to meet mission
+#   goals such as desired state of the resulting orbit. This should be extended to consider
+#   escape, transfer and injection orbits and how they affect these goals.
+

@@ -1,20 +1,30 @@
 # -*- coding: utf-8 -*-
+
+#  Copyright <YEAR> <COPYRIGHT HOLDER>
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 # x
-import os
-import sys
 import logging
 import logging.config
+import os
+import sys
+
 import autologging
-import astropy.units as u
-from PIL import Image
 from astropy.time import Time
-from poliastro.constants import J2000_TDB
+from PIL import Image
 from poliastro.bodies import *
+from poliastro.constants import J2000_TDB
+from poliastro.core.fixed import *
 from poliastro.frames.fixed import *
 from poliastro.frames.fixed import MoonFixed as LunaFixed
-from vispy.util.quaternion import Quaternion
-from poliastro.core.fixed import *
 from vispy.geometry.meshdata import MeshData
+from vispy.util.quaternion import Quaternion
+
 # from viz_functs import get_tex_data
 
 SNS_SOURCE_PATH = "c:\\_Projects\\sns_dev\\src\\"      # "c:\\_Projects\\sns2\\src\\"
@@ -56,7 +66,31 @@ class SystemDataStore:
             that body are grouped beneath it. The TYPE and MARK fields are determined according
             to the parent of the body.
         """
-        self._dist_unit = DEF_UNITS
+        self._dist_unit  = DEF_UNITS
+        self._body_names = None
+        self._datastore  = None
+
+        # attempt to read pickle file
+        try:
+            with open("_data_store.pkl", 'rb') as f:
+                self._datastore = pickle.load(f)
+                print("Loaded existing pickle file...")
+
+        # if the file doesn't exist, generate the data
+        except IOError or AttributeError:
+            print("Existing pickle file not found. Generating a new one...")
+            self._datastore = self._generate_datastore()
+
+            # attempt to write pickle file
+            try:
+                with open("_data_store.pkl", 'wb') as f:
+                    pickle.dump(self._datastore, f)
+                    print("New pickle file created...")
+
+            except IOError:
+                print("Could not write pickle file...")
+
+    def _generate_datastore(self):
         DEF_EPOCH = DEF_EPOCH0  # default epoch
 
         # System Parameters dict
@@ -102,7 +136,7 @@ class SystemDataStore:
                                  # Triton,
                                  # Charon,
                                  ]
-        self._body_names = [bod.name for bod in _body_set]
+        self._body_names = tuple([bod.name for bod in _body_set])
 
         # orbital periods of bodies
         _o_per_set = [11.86 * u.year,
@@ -221,10 +255,10 @@ class SystemDataStore:
 
             # configure radius data
             if _body.parent is None:
-                R = _body.R
+                R  = _body.R
                 Rm = Rp = R
             else:
-                R = _body.R
+                R  = _body.R
                 Rm = _body.R_mean
                 Rp = _body.R_polar
 
@@ -281,21 +315,20 @@ class SystemDataStore:
         assert _check_sets == ([_body_count, ] * (len(_check_sets) - 1) + [100, ])
         print("\t>>>check sets check out!")
         logging.debug("STATIC DATA has been loaded and verified...")
-
-        # compile all the data into a master dict structure
-        self._datastore = dict(DFLT_EPOCH=DEF_EPOCH,
-                               SYS_PARAMS=SYS_PARAMS,
-                               TEX_FNAMES=_tex_fnames,
-                               TEXTR_PATH=_tex_path,
-                               TEXTR_DATA=_tex_dat_set,
-                               BODY_COUNT=_body_count,
-                               BODY_NAMES=self._body_names,
-                               COLOR_DATA=_colorset_rgb,
-                               TYPE_COUNT=_type_count,
-                               BODY_PARAM=_body_params,
-                               VIZZ_PARAM=_vizz_params,
-                               )
         logging.debug("ALL data for the system have been collected...!")
+        # compile all the data into a master dict structure
+        return dict(DFLT_EPOCH=DEF_EPOCH,
+                    SYS_PARAMS=SYS_PARAMS,
+                    TEX_FNAMES=_tex_fnames,
+                    TEXTR_PATH=_tex_path,
+                    TEXTR_DATA=_tex_dat_set,
+                    BODY_COUNT=_body_count,
+                    BODY_NAMES=self._body_names,
+                    COLOR_DATA=_colorset_rgb,
+                    TYPE_COUNT=_type_count,
+                    BODY_PARAM=_body_params,
+                    VIZZ_PARAM=_vizz_params,
+                    )
 
     """ ---------------------  PROPERTIES  ---------------------------------------- """
 
@@ -675,25 +708,25 @@ if __name__ == "__main__":
 
         dict_store = SystemDataStore()
 
-        print("dict store:", dict_store)
-        print(dict_store.body_data["Earth"])
-
-        with open("data_store.pkl", "wb") as f:
-            pickle.dump(dict_store, f)
-
-        print("Pickling completed....")
-        print("Recovering pickle...")
-
-        with open("data_store.pkl", "rb") as f:
-            data_recover = pickle.load(f)
-
-        print("dict recovery:", data_recover)
-        print(data_recover.body_data["Earth"])
-
-        if type(dict_store) == type(data_recover):
-            print("pickle/unpickle successful!!!")
-        else:
-            print("Something didn't match....")
+        # print("dict store:", dict_store)
+        # print(dict_store.body_data["Earth"])
+        #
+        # with open("_data_store.pkl", "wb") as f:
+        #     pickle.dump(dict_store, f)
+        #
+        # print("Pickling completed....")
+        # print("Recovering pickle...")
+        #
+        # with open("_data_store.pkl", "rb") as f:
+        #     data_recover = pickle.load(f)
+        #
+        # print("dict recovery:", data_recover)
+        # print(data_recover.body_data["Earth"])
+        #
+        # if type(dict_store) == type(data_recover):
+        #     print("pickle/unpickle successful!!!")
+        # else:
+        #     print("Something didn't match....")
 
         exit()
 

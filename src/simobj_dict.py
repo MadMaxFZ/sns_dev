@@ -1,21 +1,34 @@
+#  Copyright <YEAR> <COPYRIGHT HOLDER>
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 import time
+from concurrent.futures import ThreadPoolExecutor
+
 import numpy as np
-from psygnal import Signal
 from astropy.coordinates import solar_system_ephemeris
 from astropy.time import Time
-from sim_object import SimObject
-from sim_body import SimBody
+from psygnal import Signal
+
 from datastore import SystemDataStore
-from concurrent.futures import ThreadPoolExecutor
+from sim_body import SimBody
+from sim_object import SimObject
 
 
 class SimObjectDict(dict):
 
     has_updated = Signal()
 
-    def __init__(self, epoch=None, data=None, ref_data=SystemDataStore(),
+    def __init__(self, epoch=None, data=None, ref_data=None,
                  body_names=None, use_multi=False, auto_up=False):
-        """ TODO:   """
+        """ TODO:   Refactor this such that the entire datastore doesn't get generated here, but instead
+                    can be optionally done using a class method instead. The normal procedure
+                    should be to load the object individually.
+        """
         super().__init__()
         solar_system_ephemeris.set("jpl")
         if data:
@@ -31,8 +44,8 @@ class SimObjectDict(dict):
                 print('Bad <sys_data> input... Reverting to defaults...')
                 ref_data = SystemDataStore()
 
-        # else:
-        #     ref_data = SystemDataStore()
+        else:
+            ref_data = SystemDataStore()
 
         self.ref_data = ref_data
         self._sys_primary = None
@@ -66,7 +79,7 @@ class SimObjectDict(dict):
         self._HAS_INIT = False
         self._IS_UPDATING = False
         self._USE_LOCAL_TIMER = False
-        self._USE_MULTIPROC = use_multi
+        self._USE_MULTIPROC = False
         self.executor = ThreadPoolExecutor(max_workers=6)
 
     def __setitem__(self, name, sim_obj):
