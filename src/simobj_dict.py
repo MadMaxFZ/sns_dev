@@ -6,6 +6,10 @@
 #
 #  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -19,15 +23,20 @@ from sim_body import SimBody
 from sim_object import SimObject
 
 
+# TODO:: Trim this clas down so that it is merely a general collection of SimBody objects.
+#        This way it can be used for a larger number of purposes within the simulation.
+#        The SimSystem derived class should take on any functions removed from this class.
+
+
 class SimObjectDict(dict):
 
     has_updated = Signal()
 
     def __init__(self, epoch=None, data=None, ref_data=None,
                  body_names=None, use_multi=False, auto_up=False):
-        """ TODO:   Refactor this such that the entire datastore doesn't get generated here, but instead
-                    can be optionally done using a class method instead. The normal procedure
-                    should be to load the object individually.
+        """ TODO:   Refactor this such that the entire datastore doesn't get generated here,
+                    but instead can be optionally done using a class method.
+                    The normal procedure should be to load the object individually.
         """
         super().__init__()
         solar_system_ephemeris.set("jpl")
@@ -39,7 +48,7 @@ class SimObjectDict(dict):
 
         if ref_data:
             if isinstance(ref_data, SystemDataStore):
-                print('<sys_date> input is valid...')
+                print('<sys_data> input is valid...')
             else:
                 print('Bad <sys_data> input... Reverting to defaults...')
                 ref_data = SystemDataStore()
@@ -96,40 +105,6 @@ class SimObjectDict(dict):
             raise TypeError("SimObject expected")
         return sim_obj
 
-    def load_from_names(self, _body_names: list = None) -> None:
-        # TODO: move this function up into SimSystem class
-        """
-            This method creates one or more SimBody objects based upon the provided list of names.
-            CONSIDER: Should this be a class method that returns a SimSystem() when given names?
-
-        Parameters
-        ----------
-        _body_names :
-
-        Returns
-        -------
-        nothing     : Leaves the model usable with SimBody objects loaded
-        """
-        if _body_names is None:
-            self._current_body_names = self._valid_body_names
-        else:
-            self._current_body_names = (n for n in _body_names
-                                        if n in self._valid_body_names)
-
-        # populate the list with SimBody objects
-        self.data.clear()
-        [self.data.update({body_name: SimBody(body_data=self.ref_data.body_data[body_name],
-                                              vizz_data=self.ref_data.vizz_data()[body_name])})
-         for body_name in self._current_body_names]
-
-        self._body_count = len(self.data)
-        # self._sys_primary = [sb for sb in self.data.values() if sb.body.parent is None][0]
-        self.set_parentage()
-        self._IS_POPULATED = True
-
-        self.update_state(epoch=self._sys_epoch)
-        self._HAS_INIT = True
-        # self.set_field_dict()
 
     def update_state(self, epoch):
         self._base_t = self._t1

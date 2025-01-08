@@ -1,21 +1,28 @@
 # -*- coding: utf-8 -*-
 
+#  Copyright <YEAR> <COPYRIGHT HOLDER>
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 import cProfile
 import logging.config
+from multiprocessing import Queue
 
-import numpy as np
 import psygnal
-from vispy.app import use_app
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtCore, QtWidgets
 # from PyQt5.QtCore import QThread
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QCoreApplication
-from multiprocessing import Queue
-from poliastro.bodies import Body
-from simsystem import SimSystem
+from vispy.app import use_app
+
+from datastore import *
 from sim_canvas import CanvasWrapper
 from sim_controls import Controls
+from simsystem import SimSystem
 from system_visual import StarSystemVisuals
-from datastore import *
 
 logging.config.dictConfig(log_config)
 QT_NATIVE = False
@@ -45,7 +52,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
             TODO :: Refactor this module to remove any methods that do not need to be in here,
                     moving those methods to a more appropriate location, in particular the
                     Controls or CameraSet classes. CameraSet should probably be removed altogether,
-                    in favor of a simpler method of storing the camera type and state for each ViewBox
+                    in favor of a simpler method of storing the observer, camera type and scene for each ViewBox
                     in use. As much of the operations involving widgets should exist in the Controls class.
         Parameters
         ----------

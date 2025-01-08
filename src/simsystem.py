@@ -1,3 +1,5 @@
+#!#  Copyright 2025 Max Smith Whitten
+
 #  Copyright <YEAR> <COPYRIGHT HOLDER>
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -6,6 +8,14 @@
 #
 #  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+#  associated documentation files (the “Software”), to deal in the Software without restriction,
+#  including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+#  and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+#  subject to the following conditions:
+#
+#
 # simsystem.py
 import logging
 import time
@@ -14,7 +24,13 @@ from multiprocessing import shared_memory as shm
 import psygnal
 from astropy.time import Time, TimeDeltaSec
 
+# from sim_object import SimObject
+from sim_body import SimBody
+# from sim_ship import SimShip
 from simobj_dict import SimObjectDict
+
+# from simbod_dict import SimBodyDict
+# from simshp_dict import SimShipDict
 
 # from poliastro.bodies import Body
 # from PyQt5.QtCore import QObject
@@ -54,7 +70,7 @@ class SimSystem(SimObjectDict):
                                   )
 
         # TODO :: move the remainder of this method into its own method to be called once the
-        #         bodies tobe included the system have been selected.
+        #         bodies to be included the system have been selected.
 
         #   this method loads up all the default planets with no argument
         self.load_from_names()
@@ -90,6 +106,60 @@ class SimSystem(SimObjectDict):
     #
         # [buff.close() for buff in self._membuffs]
         # [buff.unlink() for buff in self._membuffs]
+
+    def load_from_names(self, names=None):
+        """ Load the bodies into the system from a list of names.
+            If no names are provided, the default set of bodies is loaded.
+        Parameters
+        ----------
+        names   : list of str, optional
+                  The names of the bodies to be loaded. If not provided, the default set is used.
+        """
+        if names is None:
+            names = ['Sun', 'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune']
+
+        for name in names:
+            self.add_body(name)
+
+        self._num_bodies = len(self.data)
+        self._state_size = self.data['Earth'].state.nbytes
+
+        self.initialized.emit([self.num_bodies, self._state_size])
+
+        # TODO: move this function up into SimSystem class
+        """
+            This method creates one or more SimBody objects based upon the provided list of names.
+            CONSIDER: Should this be a class method that returns a SimSystem() when given names?
+
+        Parameters
+        ----------
+        _body_names :
+
+        Returns
+        -------
+        nothing     : Leaves the model usable with SimBody objects loaded
+        """
+        if _body_names is None:
+            self._current_body_names = self._valid_body_names
+        else:
+            self._current_body_names = (n for n in _body_names
+                                        if n in self._valid_body_names)
+
+        # populate the list with SimBody objects
+        self.data.clear()
+        [self.data.update({body_name: SimBody(body_data=self.ref_data.body_data[body_name],
+                                              vizz_data=self.ref_data.vizz_data()[body_name])})
+         for body_name in self._current_body_names]
+
+        self._body_count = len(self.data)
+        # self._sys_primary = [sb for sb in self.data.values() if sb.body.parent is None][0]
+        self.set_parentage()
+        self._IS_POPULATED = True
+
+        self.update_state(epoch=self._sys_epoch)
+        self._HAS_INIT = True
+        # self.set_field_dict()
+
 
     def _get_shm_buffs(self):
         """ Create two shared memory buffers according to the number of bodies present and
