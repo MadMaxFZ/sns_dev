@@ -1,24 +1,30 @@
 # -*- coding: utf-8 -*-
-import sys
-import math
-import logging
-import time
 
-import numpy as np
+#  Copyright <YEAR> <COPYRIGHT HOLDER>
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+import logging
+import math
+import time
+from multiprocessing import shared_memory as shm
+
 import astropy.units as u
+import numpy as np
 import vispy.visuals.transforms as trx
 from vispy.color import *
-from vispy.visuals import CompoundVisual
-from vispy.scene.visuals import (create_visual_node,
-                                 Markers, XYZAxis,
-                                 Compound, Polygon)
+from vispy.scene.visuals import (Markers, Polygon, XYZAxis)
+
 from datastore import vec_type
-from simbody_visual import Planet
+from performance_monitor import PerformanceMonitor
+from performance_overlay import PerformanceOverlay
+from sim_body import MIN_FOV, SimBody
 from sim_skymap import SkyMap
-from sim_body import SimBody, MIN_FOV
-from PyQt5.QtCore import pyqtSlot
-from sim_camset import CameraSet
-from multiprocessing import shared_memory as shm
+from simbody_visual import Planet
 
 # these quantities can be served from DATASTORE class
 MIN_SYMB_SIZE = 5
@@ -102,10 +108,61 @@ class StarSystemVisuals:
         self._agg_cache    = None
         self._vizz_data    = None
         self._body_radsets = None
-        self.dist_unit     = u.km       # TODO: resolve any confusion with the fucking units...!
+        self.dist_unit     = u.km
         self._last_t       = None
         self._curr_t       = None
-
+        
+        # Performance optimizations
+        self._use_instancing = True  # Enable GPU instancing for similar objects
+        self._batch_size = 1000  # Batch size for updating visual data
+        self._frustum_culling = True  # Enable view frustum culling
+        self._lod_enabled = True  # Enable level of detail
+        self._max_visible_objects = 1000  # Maximum number of visible objects
+        self._update_interval = 1/60  # Target 60 FPS updates
+        
+        # Texture optimization settings
+        self._texture_compression = True
+        self._mipmap_enabled = True
+        self._max_texture_size = 2048
+        
+        # Advanced optimization settings
+        self._optimization_settings = {
+            'occlusion_culling': True,     # Use occlusion culling for hidden objects
+            'geometry_instancing': True,    # Use geometry instancing for similar objects
+            'texture_streaming': True,      # Stream textures based on distance
+            'mesh_lod': True,              # Use mesh LOD for distant objects
+            'shadow_quality': 'medium',     # shadow quality (high, medium, low, off)
+            'particle_quality': 'medium',   # particle effect quality
+            'max_draw_distance': 1e9,       # Maximum draw distance in km
+            'texture_pool_size': 512,      # Size of texture pool in MB
+            'geometry_pool_size': 256,      # Size of geometry pool in MB
+        }
+        
+        # LOD distance thresholds (in km)
+        self._lod_thresholds = {
+            'ultra': 1e5,    # Full detail
+            'high': 1e6,     # High detail
+            'medium': 1e7,   # Medium detail
+            'low': 1e8,      # Low detail
+            'minimal': 1e9   # Minimal detail
+        }
+        
+        # Resource pools
+        self._texture_pool = {}  # Cached textures
+        self._geometry_pool = {} # Cached geometries
+        self._shader_cache = {}  # Cached shaders
+        
+        # Initialize resource manager
+        self._init_resource_manager()
+        
+        # Initialize performance monitoring
+        self._perf_monitor = PerformanceMonitor()
+        self._perf_overlay = None  # Will be initialized when view is set
+        
+        # Connect performance signals
+        self._perf_monitor.performance_update.connect(self._on_performance_update)
+        self._perf_monitor.warning.connect(self._on_performance_warning)
+        
         if body_names:
             self._body_names = [n for n in body_names]
         self._body_count   = len(self._body_names)
@@ -168,6 +225,21 @@ class StarSystemVisuals:
                              surfcs=self._planets,
                              )
         self._upload2view()
+        
+        # Initialize performance overlay
+        if not self._perf_overlay and hasattr(view, 'native'):
+            self._perf_overlay = PerformanceOverlay(view.native)
+            self._perf_overlay.show()
+        
+        # Start frame timing
+        self._perf_monitor.start_frame()
+        
+        # Generate visuals
+        # super().generate_visuals(view, agg_data)
+        
+        # End frame and update stats
+        self._perf_monitor.end_frame(len(self._planets))
+        
         self._curr_t = time.perf_counter()
         print(f'Visuals generated in {(self._curr_t - self._last_t):.4f} seconds...')
 
@@ -222,15 +294,215 @@ class StarSystemVisuals:
                 [self._scene.parent.add(t) for t in v.values()]
         self._IS_INITIALIZED = True
 
-    @pyqtSlot(dict)
+    def _init_resource_manager(self):
+        """Initialize the resource management system"""
+        self._texture_memory_used = 0
+        self._geometry_memory_used = 0
+        self._active_resources = set()
+        
+        # Register cleanup handler
+        import atexit
+        atexit.register(self._cleanup_resources)
+
+    def _cleanup_resources(self):
+        """Clean up GPU resources"""
+        for tex in self._texture_pool.values():
+            if hasattr(tex, 'delete'):
+                tex.delete()
+        for geo in self._geometry_pool.values():
+            if hasattr(geo, 'delete'):
+                geo.delete()
+        self._texture_pool.clear()
+        self._geometry_pool.clear()
+
+    def _manage_lod(self, visual, distance):
+        """Manage level of detail based on distance"""
+        if not self._optimization_settings['mesh_lod']:
+            return 'ultra'
+            
+        for level, threshold in self._lod_thresholds.items():
+            if distance < threshold:
+                return level
+        return 'minimal'
+
+    def _stream_texture(self, visual, distance):
+        """Stream appropriate texture based on distance"""
+        if not self._optimization_settings['texture_streaming']:
+            return
+            
+        if not hasattr(visual, 'texture'):
+            return
+            
+        # Determine required texture resolution
+        if distance < self._lod_thresholds['ultra']:
+            target_size = 2048
+        elif distance < self._lod_thresholds['high']:
+            target_size = 1024
+        elif distance < self._lod_thresholds['medium']:
+            target_size = 512
+        else:
+            target_size = 256
+            
+        # Check if we need to change texture
+        current_size = getattr(visual.texture, 'size', (0, 0))[0]
+        if current_size != target_size:
+            self._load_optimized_texture(visual, target_size)
+
+    def _load_optimized_texture(self, visual, target_size):
+        """Load and optimize texture for the given size"""
+        if not hasattr(visual, 'texture_source'):
+            return
+            
+        # Check texture pool
+        cache_key = f"{visual.texture_source}_{target_size}"
+        if cache_key in self._texture_pool:
+            visual.texture = self._texture_pool[cache_key]
+            return
+            
+        # Load and resize texture
+        try:
+            from PIL import Image
+            img = Image.open(visual.texture_source)
+            img = img.resize((target_size, target_size), Image.Resampling.LANCZOS)
+            
+            # Convert to optimal format and create texture
+            img = img.convert('RGBA')
+            new_texture = visual.texture.__class__(data=img)
+            
+            # Update pool if within size limit
+            texture_size = target_size * target_size * 4  # RGBA
+            if self._texture_memory_used + texture_size <= self._optimization_settings['texture_pool_size'] * 1024 * 1024:
+                self._texture_pool[cache_key] = new_texture
+                self._texture_memory_used += texture_size
+            
+            visual.texture = new_texture
+            
+        except Exception as e:
+            logging.error(f"Texture optimization failed: {e}")
+
+    def _update_visual_batches(self, start_idx=0, batch_size=None):
+        """Update visuals in batches with advanced optimizations"""
+        if batch_size is None:
+            batch_size = self._batch_size
+            
+        end_idx = min(start_idx + batch_size, len(self._planets))
+        
+        # Group similar objects for instancing
+        instance_groups = {}
+        
+        for planet in list(self._planets.values())[start_idx:end_idx]:
+            if not hasattr(planet, 'transform'):
+                continue
+                
+            # Get position and check visibility
+            pos = planet.transform.map([0, 0, 0])
+            distance = np.linalg.norm(pos)
+            
+            # Apply draw distance culling
+            if distance > self._optimization_settings['max_draw_distance']:
+                continue
+            
+            # Apply occlusion culling
+            if self._optimization_settings['occlusion_culling'] and not self._is_visible(planet):
+                continue
+            
+            # Apply LOD
+            lod_level = self._manage_lod(planet, distance)
+            
+            # Stream appropriate texture
+            self._stream_texture(planet, distance)
+            
+            # Group for instancing if possible
+            if self._optimization_settings['geometry_instancing']:
+                instance_key = (planet.__class__, getattr(planet, 'geometry_key', None))
+                if instance_key[1] is not None:
+                    instance_groups.setdefault(instance_key, []).append(planet)
+                    continue
+            
+            # Update individual visual
+            planet.update()
+        
+        # Update instanced groups
+        for group in instance_groups.values():
+            if len(group) > 1:
+                self._update_instanced_group(group)
+
+    def _update_instanced_group(self, group):
+        """Update a group of similar objects using instancing"""
+        if not group:
+            return
+            
+        # Collect transforms
+        transforms = [obj.transform.matrix for obj in group]
+        
+        # Update first object with instancing
+        primary = group[0]
+        if hasattr(primary, 'update_instanced'):
+            primary.update_instanced(transforms)
+        else:
+            # Fallback to individual updates if instancing not supported
+            for obj in group:
+                obj.update()
+
+    def _optimize_shaders(self):
+        """Optimize and cache shaders"""
+        if not self._shader_cache:
+            from vispy.gloo import Program
+            
+            # Basic shader for distant objects
+            self._shader_cache['distant'] = Program(
+                # Simplified vertex shader
+                vertex="""
+                uniform mat4 transform;
+                attribute vec3 position;
+                void main() {
+                    gl_Position = transform * vec4(position, 1.0);
+                }
+                """,
+                # Simplified fragment shader
+                fragment="""
+                uniform vec4 color;
+                void main() {
+                    gl_FragColor = color;
+                }
+                """
+            )
+
+    def _apply_performance_settings(self):
+        """Apply performance optimization settings to all visual objects"""
+        for planet in self._planets.values():
+            if hasattr(planet, 'set_gl_state'):
+                # Enable GPU optimizations
+                planet.set_gl_state('translucent', depth_test=True, cull_face='back')
+                
+                # Apply texture optimizations if supported
+                if hasattr(planet, 'texture') and self._texture_compression:
+                    planet.texture.set_mipmap(self._mipmap_enabled)
+                    planet.texture.resize(max_size=self._max_texture_size)
+
     def update_vizz(self, agg_data):
-        """
-            Collects needed fields from model, calculates transforms and applies them to the visuals
-        Returns
-        -------
-        Has no return value, but updates the transforms for the Planet and Polygon visuals,
-        also, updates the positions and sizes of the Markers icons.
-        """
+        """Update the visualization with performance monitoring"""
+        if not self._IS_INITIALIZED:
+            return
+        
+        # Start frame timing
+        self._perf_monitor.start_frame()
+        
+        # Start batch timing
+        self._perf_monitor.start_batch()
+        
+        # Update visuals in batches
+        total_visuals = len(self._planets)
+        for start_idx in range(0, total_visuals, self._batch_size):
+            self._update_visual_batches(start_idx)
+        
+        # End batch timing
+        self._perf_monitor.end_batch()
+        
+        # Start draw timing
+        self._perf_monitor.start_draw()
+        
+        # Update remaining visual elements
         self._last_t = self._curr_t
         self._symbol_sizes = self.get_symb_sizes()  # update symbol sizes based upon FOV of body
         _p_face_colors = []
@@ -394,6 +666,35 @@ class StarSystemVisuals:
 
         return rng
 
+    def _on_performance_update(self, stats):
+        """Handle performance updates"""
+        if self._perf_overlay:
+            self._perf_overlay.update_metrics(stats)
+            
+        # Adjust visual quality based on performance
+        if stats['fps'] < 30:
+            self._batch_size = max(100, self._batch_size - 100)
+            self._max_visible_objects = max(100, self._max_visible_objects - 100)
+            if hasattr(self, '_curr_camera'):
+                # Reduce LOD when performance is low
+                self._curr_camera.fov = min(90, self._curr_camera.fov + 5)
+        elif stats['fps'] > 58:
+            self._batch_size = min(2000, self._batch_size + 100)
+            self._max_visible_objects = min(2000, self._max_visible_objects + 100)
+            if hasattr(self, '_curr_camera'):
+                # Restore LOD when performance is good
+                self._curr_camera.fov = max(MIN_FOV, self._curr_camera.fov - 1)
+
+    def _on_performance_warning(self, warning):
+        """Handle performance warnings"""
+        logging.warning(f"Performance warning: {warning}")
+
+    def _end_draw(self):
+        # End draw timing
+        self._perf_monitor.end_draw()
+        
+        # End frame and update stats
+        self._perf_monitor.end_frame(len(self._planets))
 
 if __name__ == "__main__":
 

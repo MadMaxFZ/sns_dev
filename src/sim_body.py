@@ -7,16 +7,22 @@
 #
 #  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#
 import logging
 
-logging.basicConfig(filename="../logs/sns_simbod.log",
+logging.basicConfig(filename="c:\_Projects\sns_dev\logs\sns_simbod.log",
                     level=logging.ERROR,
                     format="%(funcName)s:\t\t%(levelname)s:%(asctime)s:\t%(message)s",
                     )
 
 from sim_object import *
 from vispy.color import Color
+from poliastro.bodies import Body
 from poliastro.twobody.orbit.scalar import Orbit
+from poliastro.twobody.propagation import RecseriesPropagator
 
 MIN_FOV = 1 / 3600      # I think this would be arc-seconds
 
@@ -50,9 +56,133 @@ class SimBody(SimObject):
         self.set_dimensions()
         self.set_ephem(epoch=self._epoch)
         self.set_orbit(ephem=self._ephem)
-        # self._field_dict = None
-        # SimBody.system[self._name] = self
-        # self.created.emit(self.name)
+        self._rad_set    = [MIN_SIZE, ] * 3
+        self._plane      = Planes.EARTH_ECLIPTIC
+        self._body       = None
+        self._rank       = False
+        self._RESAMPLE   = False
+        self._parent     = None
+        self._sim_parent = None
+        self._rot_func   = None
+        self._type       = None
+        self._ephem      = None
+        self._orbit      = None
+        self._trajectory = None
+        self._field_dict = None
+        self._periods    = 365
+        self._o_period   = 1.0 * u.year
+        self._spacing    = self._o_period.to(u.d) / self._periods       # approx 1 day
+        self._end_epoch  = self._epoch + self._periods * self._spacing
+        self._axes       = np.identity(4, dtype=np.float64)
+        # for some reason this slowed things down a lot
+        self.x_ax        = self._axes[0:3, 0]
+        self.y_ax        = self._axes[0:3, 1]
+        self.z_ax        = self._axes[0:3, 2]
+        self._prop       = RecseriesPropagator(self._body, self._spacing)
+        pass
+        self._field_dict = None
+        SimBody.system[self._name] = self
+        self.created.emit(self.name)
+
+    @property
+    def dist_unit(self):
+        return self._dist_unit
+
+    @dist_unit.setter                 
+    #   If the dist unit changes, must refactor attribute values
+    def dist_unit(self, new_du):
+        if type(new_du) == u.Unit:
+            self._dist_unit = new_du
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, new_parent=None):
+        if type(new_parent) is SimObject:
+            self._parent = new_parent
+
+    def set_parent(self, new_parent=None):
+        self._parent = new_parent
+    @property
+    def axes(self):
+        return self.x_ax, self.y_ax, self.z_ax, self.z_ax  # what's up with this?
+
+    @property
+    def track(self):
+        if self._trajectory:
+            return self._trajectory.xyz.transpose().value
+
+    @property
+    def plane(self):
+        return self._plane
+
+    @plane.setter
+    def plane(self, new_plane=None):
+        self._plane = new_plane
+
+    @property
+    def spacing(self):
+        return self._spacing
+
+    @property
+    def RESAMPLE(self):
+        return self._RESAMPLE
+
+    @RESAMPLE.setter
+    def RESAMPLE(self, new_sample=True):
+        self._RESAMPLE = True
+
+    @property
+    def epoch(self):
+        return self._epoch
+
+    @epoch.setter
+    def epoch(self, new_epoch=None):
+        if new_epoch is None:
+            new_epoch = SimObject.epoch0
+        if type(new_epoch) == Time:
+            if new_epoch > self._end_epoch:
+                self.set_ephem(new_epoch)
+            self._epoch = Time(new_epoch,
+                               format='jd',
+                               scale='tdb',
+                               )
+
+    @property
+    def end_epoch(self):
+        return self._end_epoch
+
+    @end_epoch.setter
+    def end_epoch(self, new_end=None):
+        if type(new_end) == Time:
+            self._end_epoch = new_end
+
+    @epoch.setter
+    def epoch(self, e=None):
+        if type(e) == Time:
+            self._epoch = e
+
+    @property
+    def elem_coe(self):
+        pass
+
+    @property
+    def elem_pqw(self):
+        pass
+
+    @property
+    def elem_rv(self):
+        pass
+
+    @property
+    def ephem(self):
+        return self._ephem
+
+    @property
+    def orbit(self):
+        return self._orbit
 
     def set_dimensions(self, **kwargs):
         if (self._name == 'Sun' or self._type == 'star' or
@@ -104,6 +234,7 @@ class SimBody(SimObject):
             self._orbit = Orbit.from_ephem(self.body.parent,
                                            ephem,
                                            self._epoch,
+                                           self._prop,
                                            )
             # print(self._orbit)
             logging.info(">>> COMPUTING ORBIT: %s",
@@ -164,6 +295,24 @@ class SimBody(SimObject):
         self._state = new_state
         # return self._state
 
+    # def set_parent(self, sb=None):
+    #     if type(sb) == Body:
+    #         self._sim_parent = sb
+    #         sb.plane = Planes.EARTH_ECLIPTIC
+    #         this_parent = sb.parent
+    #         if this_parent is None:
+    #             sb.type = 'star'
+    #             sb.sb_parent = None
+    #             sb.is_primary = True
+    #         else:
+    #             sb.sb_parent = this_parent
+    #             if sb.sb_parent.type == 'star':
+    #                 sb.type = 'planet'
+    #             elif sb.sb_parent.type == 'planet':
+    #                 sb.type = 'moon'
+    #                 if this_parent.name == "Earth":
+    #                     sb.plane = Planes.EARTH_EQUATOR
+
     @property
     def body(self):
         return self._body
@@ -181,24 +330,6 @@ class SimBody(SimObject):
         if self.body.parent:
             if self.body.parent.name == new_sb_parent.name:
                 self._sim_parent = new_sb_parent
-
-    def set_parent(self, sb=None):
-        if type(sb) == Body:
-            self._sim_parent = sb
-            sb.plane = Planes.EARTH_ECLIPTIC
-            this_parent = sb.parent
-            if this_parent is None:
-                sb.type = 'star'
-                sb.sb_parent = None
-                sb.is_primary = True
-            else:
-                sb.sb_parent = this_parent
-                if sb.sb_parent.type == 'star':
-                    sb.type = 'planet'
-                elif sb.sb_parent.type == 'planet':
-                    sb.type = 'moon'
-                    if this_parent.name == "Earth":
-                        sb.plane = Planes.EARTH_EQUATOR
 
     @property
     def sys_primary(self):
