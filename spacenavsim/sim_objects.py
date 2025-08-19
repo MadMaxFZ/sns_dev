@@ -1,27 +1,3 @@
-"""
-MIT License
-
-Copyright (c) 2025 Max Smith Whitten
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
-
 """	sim_objects.py:
         This module defines a simulated Newtonian particle class (SimParticle)
         and derived class that simulates celestial bodies (SimPlanet), and
@@ -35,10 +11,18 @@ SOFTWARE.
 #
 #  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from abc import ABC
+
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#
 import numpy as np
-from ABC import ABC
+from astropy.time import TimeDelta
 from poliastro.bodies import *
 from poliastro.constants import J2000_TDB
+from poliastro.ephem import Ephem
+from poliastro.twobody import Orbit
 from pyquaternion import Quaternion as quat
 
 base_vec2 = np.zeros(2)
@@ -90,33 +74,37 @@ class SimParticle(ABC):
         super(SimParticle, self).__init__(*args, **kwargs)
         SimParticle._system.update({self._id: self})  # add new instance into system dict
 
+    def set_ephem(self):
+        return None
 
-    def update_state(self, dt):
+    def set_orbit(self):
+        return None
+
+    def get_upstate(self, dt):
         """
-            update the state either by a time interval 'dt'
+            Returns a state based upon the current state and accelerations over time dt.
+            Subclasses will most likely need to override this method.
 
-        Args:
-            dt: dt is TimeDelta, increment from current epoch
+            Args:
+                dt: dt is TimeDelta, increment from current epoch
         """
         # apply acceleration
         # TODO:: model accel with a function over a time segment?
 
         if type(dt) == TimeDelta:
-            self._vel += self._acc * dt
-            self._pos += self._vel * dt
+            _vel = self._vel + self._acc * dt
+            _pos = self._pos + _vel * dt
+            _epo = self._epo + dt
 
             # apply torque
             # TODO:: model torque with a function over a time segment?
-
             # self._rot += self._trq * dt
             # self._att += self._rot * dt 	# double check quat math here
-            self._epo += dt
+
+            return _pos, _vel, _epo
 
         else:
-            raise TypeError("Argument must be a TimeDelta...")
-
-
-    # ?? emit signal here to indicate update ??
+            raise TypeError("Argument MUST be a TimeDelta...")
 
 
 # ---------------------------------------------------------------------------------------
@@ -130,8 +118,8 @@ class SimPlanet(SimParticle):
 
     def __init__(self,
                  body=None,
-                 attitude=quat_type(1, 0, 0, 0),
-                 rotation=quat_type(1, 0, 0, 0),
+                 # attitude=quat_type(1, 0, 0, 0),
+                 # rotation=quat_type(1, 0, 0, 0),
                  *args,
                  **kwargs):
         """
@@ -146,16 +134,38 @@ class SimPlanet(SimParticle):
         if body and type(body) == Body:
             self._bod = body
             self._id = self._id + self._bod.name
+            self._epochs = []                     # set linear range of time coordinates
+            self._attractor = None
+            if self._bod.parent != Sun:
+                self._attractor = self._bod.parent
+
+            self._ephem = self.set_ephem()
+            self._orbit = self.set_orbit()
+            # the following are computed using rot_func()
+            self._att = base_quat.__copy__()
+            self._rot = base_quat.__copy__()
+
         else:
-            raise TypeError("body must be defined AND be of type Body")
+            raise TypeError("'body' argument must be of type Body")
 
-        self._att = attitude  # attitude
-        self._rot = rotation  # rotation rate
-        self._trq = quat_type(1, 0, 0, 0)  # torque
+    def set_ephem(self):
+        return Ephem.from_body(body=self._bod,
+                               epochs=self._epochs,  # must define these
+                               *,  # not sure what this should be
+                               attractor=self._attractor,
+                               plane=Planes.EARTH_ECLIPTIC
+                               )
 
-    # construct poliastro orbit here
+    def set_orbit(self):
+        return Orbit.from_ephem(attractor=self._attractor,
+                                ephem=self._ephem,
+                                epoch=self._epochs[0]
+                                )
 
-    def update_state(self, dt):
+    def get_upstate(self, dt):
+        """
+            Return
+        """
         pass
 
 
@@ -175,7 +185,7 @@ class SimShip(SimParticle):
 
     # add ship attributes here
 
-    def update_state(self, dt):
+    def get_upstate(self, dt):
         # update from poliastro and user inputs
         pass
 

@@ -8,6 +8,10 @@
 #
 #  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#
 # x
 import logging
 import logging.config
@@ -22,8 +26,9 @@ from poliastro.constants import J2000_TDB
 from poliastro.core.fixed import *
 from poliastro.frames.fixed import *
 from poliastro.frames.fixed import MoonFixed as LunaFixed
+# from vispy.util.quaternion import Quaternion
+from pyquaternion import Quaternion
 from vispy.geometry.meshdata import MeshData
-from vispy.util.quaternion import Quaternion
 
 # from viz_functs import get_tex_data
 
@@ -241,7 +246,7 @@ class SystemDataStore:
             _body = _body_set[idx]
             _bod_prnt = _body.parent
 
-            logging.debug(">LOADING STATIC DATA for " + str(_bod_name))
+            logging.debug(f">LOADING STATIC DATA for {str(_bod_name)}")
 
             # configure texture data
             try:
@@ -251,7 +256,7 @@ class SystemDataStore:
 
             # the textures should be loaded later on
             _tex_dat_set.update({_bod_name: get_texture_data(fname=_tex_fname)})
-            logging.debug("_tex_dat_set[" + str(idx) + "] = " + str(_tex_fname))
+            logging.debug(f"_tex_dat_set[{str(idx)}] = {str(_tex_fname)}")
 
             # configure radius data
             if _body.parent is None:
@@ -413,7 +418,7 @@ class SystemDataStore:
 
 
 def quat_to_rpy(quat):
-    if quat is not None:
+    if quat is not None and type(quat) == Quaternion:
         # quat.w = abs(quat.w)
         t0 = +2.0 * (quat.w * quat.x + quat.y * quat.z)
         t1 = +1.0 - 2.0 * (quat.x * quat.x + quat.y * quat.y)
@@ -439,6 +444,8 @@ def quat_to_rpy(quat):
         #     roll_z += 360
 
         return yaw_x, pitch_y, roll_z
+
+    return None
 
 
 def to_rpy_str(quat):
@@ -620,12 +627,14 @@ def show_it(value):
     pass
 
 
-def to_bold_font(value):
+def to_bold_font(value: str):
     if value:
         ante = "<html><head/><body><p><span style=\" font-weight:600;\">"
         post = "</span></p></body></html>"
 
         return ante + str(value) + post
+
+    return ""
 
 
 def pad_plus(value):
@@ -652,6 +661,8 @@ def to_vector_str(vec, hdrs=None):
 
         return vec_str
 
+    return ""
+
 
 def to_quat_str(quat):
     if quat is not None:
@@ -662,6 +673,9 @@ def to_quat_str(quat):
                        "\nW: " + f'{quat.w:5.4}')
 
         return quat_str
+
+    return ""
+
 
 
 log_config = {

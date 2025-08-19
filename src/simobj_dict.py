@@ -10,6 +10,10 @@
 #  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 #
 #
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -111,12 +115,12 @@ class SimObjectDict(dict):
         _tx = time.perf_counter()
 
         if self._USE_MULTIPROC:
-            futures = (self.executor.submit(sb.update_state, epoch=epoch)
+            futures = (self.executor.submit(sb.get_upstate, epoch=epoch)
                        for sb in self.data.values())
             for future in futures:
                 future.result()
         else:
-            [sb.update_state(epoch)
+            [sb.get_upstate(epoch)
              for sb in self.data.values()]
 
         self._t1 = time.perf_counter()
