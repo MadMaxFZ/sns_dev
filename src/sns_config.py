@@ -6,6 +6,10 @@
 #
 #  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#
 import logging
 import logging.config
 import os
@@ -327,7 +331,7 @@ class SystemDataStore:
                                    TEXTR_PATH=_tex_path,
                                    TEXTR_DATA=_tex_dat_set,
                                    BODY_COUNT=_body_count,
-                                   BODY_NAMES=self._body_names,
+                                   BODY_NAMES=_body_params.keys(),
                                    COLOR_DATA=_colorset_rgb,
                                    TYPE_COUNT=_type_count,
                                    BODY_PARAM=_body_params,
@@ -365,7 +369,7 @@ class SystemDataStore:
     @property
     def body_names(self):
         # list of body names available in sim, cast to a tuple to preserve order
-        return tuple([name for name in self._body_names])
+        return tuple(self._datastore['BODY_PARAM'].keys())
 
     @property
     def body_data(self, name=None):
@@ -423,5 +427,5 @@ class SystemDataStore:
 if __name__ == "__main__":
     data_store = SystemDataStore()
     print(data_store.body_names)
-    print(data_store.body_data('Earth'))
-    print(data_store.texture_fname('Mars'))
+    print(data_store.body_data['Earth'])
+    print(data_store.texture_fname[0:-1])

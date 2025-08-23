@@ -24,6 +24,7 @@ from vispy.util.quaternion import Quaternion
 P = Path("c:")
 DEF_TEX_FNAME = P / "../resources/textures/2k_5earth_daymap.png"
 
+
 def quat_to_rpy(quat):
     if quat is not None and type(quat) == Quaternion:
         # quat.w = abs(quat.w)
