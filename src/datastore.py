@@ -1,3 +1,4 @@
+
 #  Copyright <YEAR> <COPYRIGHT HOLDER>
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -167,7 +168,7 @@ def _latitude(rows=4, cols=8, radius=1, offset=False):
     return MeshData(vertices=verts, faces=faces)
 
 
-def _oblate_sphere(rows=4, cols=None, radius=(1200 * u.km,) * 3, offset=False):
+def _oblate_sphere(rows=4, cols=None, radius=(1200,) * 3, offset=False):
     verts = np.empty((rows + 1, cols + 1, 3), dtype=np.float32)
     tcrds = np.empty((rows + 1, cols + 1, 2), dtype=np.float32)
     norms = np.linalg.norm(verts)
