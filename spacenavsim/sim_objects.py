@@ -15,6 +15,10 @@
 #  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 #
 #
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -138,17 +142,17 @@ class SimPlanet(SimParticle):
         if body and type(body) == Body:
             self._bod = body
             self._id = self._id + self._bod.name
-            # TODO:: set linear range of time coordinates over orbital period
-            self._epochs = self.init_epochs()
+            # the following two 2/8are computed using rot_func()
+            self._att = base_quat.__copy__()
+            self._rot = base_quat.__copy__()
             self._attractor = None
             if self._bod.parent != Sun:
                 self._attractor = self._bod.parent
 
+            # TODO:: set linear range of time coordinates over orbital period
+            self._epochs = self.init_epochs()
             self._ephem = self.init_ephem()
             self._orbit = self.init_orbit()
-            # the following are computed using rot_func()
-            self._att = base_quat.__copy__()
-            self._rot = base_quat.__copy__()
 
         else:
             raise TypeError("'body' argument must be of type Body")
