@@ -12,6 +12,10 @@
 #  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 #
 #
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#
 # x
 import logging
 import logging.config
@@ -20,6 +24,7 @@ import sys
 
 import autologging
 from astropy.time import Time
+from pathlib2 import Path
 from PIL import Image
 from poliastro.bodies import *
 from poliastro.constants import J2000_TDB
@@ -32,18 +37,20 @@ from vispy.geometry.meshdata import MeshData
 
 # from viz_functs import get_tex_data
 
-SNS_SOURCE_PATH = "c:\\_Projects\\sns_dev\\src\\"      # "c:\\_Projects\\sns2\\src\\"
+P = Path("c:")
+SNS_SOURCE_PATH = P / '_Projects' / 'sns_dev' / 'src'  # "c:\\_Projects\\sns2\\src\\"
 os.chdir(SNS_SOURCE_PATH)
 
-logging.basicConfig(filename=SNS_SOURCE_PATH + "../logs/sns_defs.log",
-                    level=logging.ERROR,
-                    format="%(funcName)s:\t%(levelname)s:%(asctime)s:\t%(message)s",
-                    )
+# logging.basicConfig(filename=SNS_SOURCE_PATH / "../logs/sns_defs.log",
+#                     level=logging.ERROR,
+#                     format="%(funcName)s:\t%(levelname)s:%(asctime)s:\t%(message)s",
+#                     )
 
 #   Here's a few dreadful global variables
 DEF_UNITS = u.km
 DEF_EPOCH0 = J2000_TDB
-DEF_TEX_FNAME = "../resources/textures/2k_5earth_daymap.png"
+DEF_TEX_FNAME = P / "../resources/textures/2k_5earth_daymap.png"
+PICKL_FNAME = P / "_data_store.pkl"
 vec_type = type(np.zeros((3,), dtype=np.float64))
 DEF_CAM_STATE = {'center': (-8.0e+08, 0.0, 0.0),
                  'scale_factor': 0.5e+08,
@@ -73,24 +80,27 @@ class SystemDataStore:
         """
         self._dist_unit  = DEF_UNITS
         self._body_names = None
-        self._datastore  = None
+        self._datastore  = self._setup_datastore()
 
+    def _setup_datastore(self):
         # attempt to read pickle file
-        try:
-            with open("_data_store.pkl", 'rb') as f:
-                self._datastore = pickle.load(f)
+        # TODO:: FIX THIS!! I erased .pkl file, yet the code indicated it loaded data from disk...
+        if PICKL_FNAME.exists():
+            with open(PICKL_FNAME, 'rb') as f:
                 print("Loaded existing pickle file...")
+                return pickle.load(f)
 
         # if the file doesn't exist, generate the data
-        except IOError or AttributeError:
+        else:
             print("Existing pickle file not found. Generating a new one...")
-            self._datastore = self._generate_datastore()
-
             # attempt to write pickle file
             try:
+                _data = self._generate_datastore()
                 with open("_data_store.pkl", 'wb') as f:
-                    pickle.dump(self._datastore, f)
+                    pickle.dump(_data, f)
                     print("New pickle file created...")
+
+                return _data
 
             except IOError:
                 print("Could not write pickle file...")
@@ -274,7 +284,7 @@ class SystemDataStore:
                 _parent_name = _body.parent.name
 
             # a dict of ALL body data EXCEPT the viz_dict{}
-            _body_data = dict(body_name=_body.name,  # build the _body_params dict
+            _body_data = dict(body_name=_bod_name,  # build the _body_params dict
                               body_obj=_body,
                               parent_name=_parent_name,
                               r_set=(R, Rm, Rp),
@@ -283,7 +293,6 @@ class SystemDataStore:
                               o_period=_o_per_set[idx].to(u.s),
                               body_type=_body_types[_type_set[idx]]
                               )
-            _body_params.update({_bod_name: _body_data})
 
             # a dict of the initial visual parameters
             _vizz_data = dict(body_color=_colorset_rgb[idx],
@@ -297,9 +306,12 @@ class SystemDataStore:
                               )
             _vizz_params.update({_bod_name: _vizz_data})
 
+            # try this one? (All paramters for a body under its name key)
+            _body_params.update({_bod_name: [_body_data, _vizz_params]})
+
             # configure the body type
-            if _body_data['body_type'] not in _type_count.keys():  # identify types of bodies
-                _type_count[_body_data['body_type']] = 0
+            if _body_data[0]['body_type'] not in _type_count.keys():  # identify types of bodies
+                _type_count[_body_data[0]['body_type']] = 0
             _type_count[_body_types[_type_set[idx]]] += 1  # count members of each type
             idx += 1
             _body_count += 1
@@ -332,7 +344,7 @@ class SystemDataStore:
                     COLOR_DATA=_colorset_rgb,
                     TYPE_COUNT=_type_count,
                     BODY_PARAM=_body_params,
-                    VIZZ_PARAM=_vizz_params,
+                    # VIZZ_PARAM=_vizz_params,
                     )
 
     """ ---------------------  PROPERTIES  ---------------------------------------- """
@@ -718,7 +730,7 @@ if __name__ == "__main__":
     import pickle
 
     def main():
-        logging.debug("-------->> RUNNING SYSTEM_DATASTORE() STANDALONE <<---------------")
+        # logging.debug("-------->> RUNNING SYSTEM_DATASTORE() STANDALONE <<---------------")
 
         dict_store = SystemDataStore()
 

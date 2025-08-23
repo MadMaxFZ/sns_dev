@@ -11,6 +11,10 @@
 #  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 #
 #
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#
 import logging
 
 logging.basicConfig(filename="c:\_Projects\sns_dev\logs\sns_simbod.log",
@@ -22,6 +26,9 @@ from sim_object import *
 from vispy.color import Color
 from poliastro.bodies import Body
 from poliastro.twobody.orbit.scalar import Orbit
+from poliastro.ephem import Ephem
+from poliastro.frames import Planes
+from poliastro.util import time_range
 from poliastro.twobody.propagation import RecseriesPropagator
 
 MIN_FOV = 1 / 3600      # I think this would be arc-seconds

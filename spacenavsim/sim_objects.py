@@ -11,18 +11,19 @@
 #
 #  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from abc import ABC
-
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 #
 #
+from abc import ABC, abstractmethod
+
 import numpy as np
 from astropy.time import TimeDelta
 from poliastro.bodies import *
-from poliastro.constants import J2000_TDB
+from poliastro.constants import J2000_TDB as T0
 from poliastro.ephem import Ephem
 from poliastro.twobody import Orbit
+from poliastro.util import time_range
 from pyquaternion import Quaternion as quat
 
 base_vec2 = np.zeros(2)
@@ -48,7 +49,7 @@ class SimParticle(ABC):
                  velocity=base_vec3.copy(),
                  radius=1,
                  mass=1,
-                 epoch=J2000_TDB,
+                 epoch=T0,
                  *args,
                  **kwargs,
                  ):
@@ -74,12 +75,15 @@ class SimParticle(ABC):
         super(SimParticle, self).__init__(*args, **kwargs)
         SimParticle._system.update({self._id: self})  # add new instance into system dict
 
-    def set_ephem(self):
+    @abstractmethod
+    def init_ephem(self):
         return None
 
-    def set_orbit(self):
+    @abstractmethod
+    def init_orbit(self):
         return None
 
+    @abstractmethod
     def get_upstate(self, dt):
         """
             Returns a state based upon the current state and accelerations over time dt.
@@ -134,13 +138,14 @@ class SimPlanet(SimParticle):
         if body and type(body) == Body:
             self._bod = body
             self._id = self._id + self._bod.name
-            self._epochs = []                     # set linear range of time coordinates
+            # TODO:: set linear range of time coordinates over orbital period
+            self._epochs = self.init_epochs()
             self._attractor = None
             if self._bod.parent != Sun:
                 self._attractor = self._bod.parent
 
-            self._ephem = self.set_ephem()
-            self._orbit = self.set_orbit()
+            self._ephem = self.init_ephem()
+            self._orbit = self.init_orbit()
             # the following are computed using rot_func()
             self._att = base_quat.__copy__()
             self._rot = base_quat.__copy__()
@@ -148,15 +153,19 @@ class SimPlanet(SimParticle):
         else:
             raise TypeError("'body' argument must be of type Body")
 
-    def set_ephem(self):
+    def init_epochs(self):
+        return time_range(start=T0, periods=360)
+        pass
+
+    def init_ephem(self):
         return Ephem.from_body(body=self._bod,
                                epochs=self._epochs,  # must define these
-                               *,  # not sure what this should be
+                               # *,  # not sure what this should be
                                attractor=self._attractor,
                                plane=Planes.EARTH_ECLIPTIC
                                )
 
-    def set_orbit(self):
+    def init_orbit(self):
         return Orbit.from_ephem(attractor=self._attractor,
                                 ephem=self._ephem,
                                 epoch=self._epochs[0]
