@@ -100,8 +100,6 @@ pywin32==306
 pywin32-ctypes==0.2.3
 PyYAML==6.0.2
 pyzmq==26.2.0
-# Editable Git install with no remote (rebound==4.4.10)
--e l:\_projects\rebound
 referencing==0.35.1
 requests==2.32.3
 rich==13.9.4
