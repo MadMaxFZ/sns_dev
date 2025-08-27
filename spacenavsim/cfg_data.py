@@ -19,11 +19,7 @@ from poliastro.core.fixed import *
 from poliastro.frames.fixed import *
 from poliastro.frames.fixed import MoonFixed as LunaFixed
 
-from data_store import earth_rot_elements_at_epoch, get_texture_data
-
-P = Path("c:")
-SNS_SOURCE_PATH = P / '_Projects' / 'sns_dev' / 'src'  # "c:\\_Projects\\sns2\\src\\"
-os.chdir(SNS_SOURCE_PATH)
+from util import earth_rot_elements_at_epoch, get_texture_data
 
 # logging.basicConfig(filename=SNS_SOURCE_PATH / "../logs/sns_defs.log",
 #                     level=logging.ERROR,
@@ -34,7 +30,7 @@ os.chdir(SNS_SOURCE_PATH)
 DEF_UNITS = u.km
 DEF_EPOCH0 = J2000_TDB
 
-PICKL_FNAME = P / "_data_store.pkl"
+
 vec_type = type(np.zeros((3,), dtype=np.float64))
 # DEF_CAM_STATE = {'center': (-8.0e+08, 0.0, 0.0),
 #                  'scale_factor': 0.5e+08,
@@ -61,16 +57,29 @@ class SystemDataStore:
             body are grouped beneath it. The TYPE and MARK fields are determined
             according to the parent of the body.
         """
+
+        self.P = Path("c:")
+        self.SNS_SOURCE_PATH = self.P / '_Projects' / 'sns_dev' / 'spacenavsim'  # "c:\\_Projects\\sns2\\src\\"
+        self.PICKL_FNAME = self.SNS_SOURCE_PATH / "_data_store.pkl"
+        print(f"Pickle File exists: {self.PICKL_FNAME}")
+        os.chdir(self.SNS_SOURCE_PATH)
         self._dist_unit = DEF_UNITS
         self._body_names = None
         self._datastore = None
+        self.USE_AUTO_UPDATE_STATE = False
+        self._IS_POPULATED = False
+        self._HAS_INIT = False
+        self._IS_UPDATING = False
+        self._USE_LOCAL_TIMER = False
+        self._USE_MULTIPROC = False
         self._setup_datastore()
+
 
     def _setup_datastore(self):
         # attempt to read pickle file
         # TODO:: FIX THIS!! I erased .pkl file, yet the code indicated it loaded data from disk...
-        if PICKL_FNAME.exists():
-            with open(PICKL_FNAME, 'rb') as f:
+        if self.PICKL_FNAME.exists():
+            with open(self.PICKL_FNAME, 'rb') as f:
                 print("Loaded existing pickle file...")
                 self._datastore = pickle.load(f)
 
@@ -81,7 +90,7 @@ class SystemDataStore:
             if self._generate_datastore():
                 try:
                     with open("_data_store.pkl", 'wb') as f:
-                        pickle.dump(self.data_store, f)
+                        pickle.dump(self._datastore, f)
                         print("New pickle file created...")
 
                 except IOError:
@@ -295,7 +304,7 @@ class SystemDataStore:
             _vizz_params.update({_bod_name: _vizz_data})
 
             # try this one? (All parameters for a body under its name key)
-            _body_params.update({_bod_name: [_body_data, _vizz_params]})
+            _body_params.update({_bod_name: _body_data})
 
             # configure the body type
             if _body_data['body_type'] not in _type_count.keys():  # identify types of bodies
@@ -329,11 +338,11 @@ class SystemDataStore:
                                    TEXTR_PATH=_tex_path,
                                    TEXTR_DATA=_tex_dat_set,
                                    BODY_COUNT=_body_count,
-                                   BODY_NAMES=_body_params.keys(),
+                                   BODY_NAMES=list(_body_params.keys()),
                                    COLOR_DATA=_colorset_rgb,
                                    TYPE_COUNT=_type_count,
                                    BODY_PARAM=_body_params,
-                                   # VIZZ_PARAM=_vizz_params,
+                                   VIZZ_PARAM=_vizz_params,
                                    )
             isOK = True
 
@@ -398,7 +407,7 @@ class SystemDataStore:
         if name is None:
             res = self._datastore['TEX_FNAMES']
         elif name in self.body_names:
-            res = self._datastore['BODY_PARAM'][name]['tex_fname']
+            res = self._datastore['BODY_PARAM'][0][name]['tex_fname']
 
         return res
 
@@ -408,7 +417,7 @@ class SystemDataStore:
         if name is None:
             res = self._datastore['TEXTR_DATA']
         elif name in self.body_names:
-            res = self._datastore['BODY_PARAM'][name]['tex_data']
+            res = self._datastore['BODY_PARAM'][0][name]['tex_data']
 
         return res
 

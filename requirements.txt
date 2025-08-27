@@ -89,9 +89,11 @@ pygame==2.6.1
 Pygments==2.18.0
 PyOpenGL==3.1.7
 pyparsing==3.1.4
-PyQt5==5.15.11
 PyQt5-Qt5==5.15.2
 PyQt5_sip==12.15.0
+PyQt6==6.9.1
+PyQt6-Qt6==6.9.1
+PyQt6_sip==13.10.2
 pyquaternion==0.9.9
 python-dateutil==2.9.0.post0
 pytz==2024.2
@@ -100,6 +102,8 @@ pywin32==306
 pywin32-ctypes==0.2.3
 PyYAML==6.0.2
 pyzmq==26.2.0
+# Editable Git install with no remote (rebound==4.4.10)
+-e l:\_projects\rebound
 referencing==0.35.1
 requests==2.32.3
 rich==13.9.4
