@@ -9,22 +9,23 @@
 #  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import cProfile
-import logging.config
 from multiprocessing import Queue
 
 import psygnal
-from PyQt5 import QtCore, QtWidgets
-# from PyQt5.QtCore import QThread
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QCoreApplication
+from astropy.units import Quantity
+from poliastro.bodies import Body
+from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import pyqtSignal, pyqtSlot, QCoreApplication
 from vispy.app import use_app
 
 from datastore import *
 from sim_canvas import CanvasWrapper
 from sim_controls import Controls
 from simsystem import SimSystem
+from sns_config import SystemDataStore as datastore
 from system_visual import StarSystemVisuals
 
-logging.config.dictConfig(log_config)
+# logging.config.dictConfig(log_config)
 QT_NATIVE = False
 STOP_IT = True
 DO_PROFILE = False
@@ -39,7 +40,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
     panel_refreshed = pyqtSignal(str)
     on_draw_sig = psygnal.Signal(str)
     vispy_keypress = psygnal.Signal(str)
-    datastore = SystemDataStore()
+    # datastore = SystemDataStore()
 
     """     A dictionary of labels to act as keys to reference the data stored in the SimSystem model:
         The first four data elements must be computed every cycle regardless, while the remaining elements will
@@ -67,7 +68,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
             _user_bods = self.get_user_bodies()
 
             if _user_bods is None:
-                self.body_names = self.datastore.body_names
+                self.body_names = datastore.body_names
             else:
                 self.body_names = _user_bods
 
@@ -110,7 +111,7 @@ class MainQtWindow(QtWidgets.QMainWindow):
                                         self.visuals.vizz_bounds,
                                         self.visuals.vizz_bounds, )
         # set the initial camera position in the ecliptic looking towards the primary
-        self.cameras.curr_cam.set_state(DEF_CAM_STATE)
+        self.cameras.curr_cam.set_state(datastore.DEF_CAM_STATE)
         self.curr_simbod = self.model['Earth']
         self.reset_rotation()
         self._connect_slots()
