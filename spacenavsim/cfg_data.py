@@ -1,16 +1,4 @@
 
-#  Copyright <YEAR> <COPYRIGHT HOLDER>
-#
-#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-#  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-#
-#  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-#
-#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-#
 import logging
 import logging.config
 import os
@@ -25,17 +13,14 @@ from poliastro.frames.fixed import MoonFixed as LunaFixed
 
 from util import earth_rot_elements_at_epoch, get_texture_data
 
+
 # logging.basicConfig(filename=SNS_SOURCE_PATH / "../logs/sns_defs.log",
 #                     level=logging.ERROR,
 #                     format="%(funcName)s:\t%(levelname)s:%(asctime)s:\t%(message)s",
 #                     )
 
 #   Here's a few dreadful global variables
-DEF_UNITS = u.km
-DEF_EPOCH0 = J2000_TDB
 
-
-vec_type = type(np.zeros((3,), dtype=np.float64))
 # DEF_CAM_STATE = {'center': (-8.0e+08, 0.0, 0.0),
 #                  'scale_factor': 0.5e+08,
 #                  'rotation1': Quaternion(-0.5, +0.5, -0.5, -0.5),
@@ -61,13 +46,16 @@ class SystemDataStore:
             body are grouped beneath it. The TYPE and MARK fields are determined
             according to the parent of the body.
         """
-
+        self.DEF_UNITS = u.km
+        self.DEF_EPOCH0 = J2000_TDB
+        self._USE_MULTIPROC = False
+        vec_type = type(np.zeros((3,), dtype=np.float64))
         self.P = Path("c:")
         self.SNS_SOURCE_PATH = self.P / '_Projects' / 'sns_dev' / 'spacenavsim'  # "c:\\_Projects\\sns2\\src\\"
         self.PICKL_FNAME = self.SNS_SOURCE_PATH / "_data_store.pkl"
         os.chdir(self.SNS_SOURCE_PATH)
         print(f"Pickle File exists: {self.PICKL_FNAME.exists()}")
-        self._dist_unit = DEF_UNITS
+        self._dist_unit = self.DEF_UNITS
         self._body_names = None
         self._datastore = None
         self.USE_AUTO_UPDATE_STATE = False
@@ -95,9 +83,10 @@ class SystemDataStore:
             if self._generate_datastore():
                 # try:
                 # TODO:: Figure out why this is not writing the pickle file!!
-                with open("_data_store.pkl", 'wb') as f:
-                    pickle.dump(self._datastore, f)
-                    print("New pickle file created...")
+                f = open("_data_store.pkl", 'wb')
+                pickle.dump(self._datastore, f)
+                print("New pickle file created...")
+                f.close()
 
                 # except IOError:
                 #     print("Could not write pickle file...")
@@ -109,11 +98,9 @@ class SystemDataStore:
     def _generate_datastore(self):
         """
         """
-        DEF_EPOCH = DEF_EPOCH0  # default epoch
-
         # System Parameters dict
         SYS_PARAMS = dict(sys_name="Sol",
-                          def_epoch=DEF_EPOCH,
+                          def_epoch=self.DEF_EPOCH0,  # default epoch
                           dist_unit=self._dist_unit,
                           periods=365,
                           spacing=24 * 60 * 60 * u.s,  # one Earth day (in seconds)
@@ -338,7 +325,7 @@ class SystemDataStore:
             logging.debug("ALL data for the system have been collected...!")
 
             # compile all the data into a master dict structure
-            self._datastore = dict(DFLT_EPOCH=DEF_EPOCH,
+            self._datastore = dict(DFLT_EPOCH=self.DEF_EPOCH0,
                                    SYS_PARAMS=SYS_PARAMS,
                                    TEX_FNAMES=_tex_fnames,
                                    TEXTR_PATH=_tex_path,
