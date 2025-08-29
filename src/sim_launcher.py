@@ -13,10 +13,10 @@
 from multiprocessing import Queue  # Queues needed for IPC
 
 from controller import SimController  # simulation master controller
-from datastore import *  # default system data
+from datastore import SystemDataStore as ref_data  # default system data
 
 command_q, response_q = Queue, Queue
-datastore = SystemDataStore()
+datastore = ref_data()
 
 cntrl = SimController(command_q, response_q)
 model = cntrl.generate_model(sim_data=datastore)

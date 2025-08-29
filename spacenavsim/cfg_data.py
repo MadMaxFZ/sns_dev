@@ -66,7 +66,6 @@ class SystemDataStore:
         self._USE_MULTIPROC = False
         self._setup_datastore()
 
-
     def _setup_datastore(self):
         # attempt to read pickle file
         # TODO:: FIX THIS!! I erased .pkl file, yet the code indicated it loaded data from disk...
