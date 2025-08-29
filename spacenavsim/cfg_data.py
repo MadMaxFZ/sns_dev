@@ -7,6 +7,10 @@
 #
 #  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+#
 import logging
 import logging.config
 import os
@@ -61,8 +65,8 @@ class SystemDataStore:
         self.P = Path("c:")
         self.SNS_SOURCE_PATH = self.P / '_Projects' / 'sns_dev' / 'spacenavsim'  # "c:\\_Projects\\sns2\\src\\"
         self.PICKL_FNAME = self.SNS_SOURCE_PATH / "_data_store.pkl"
-        print(f"Pickle File exists: {self.PICKL_FNAME}")
         os.chdir(self.SNS_SOURCE_PATH)
+        print(f"Pickle File exists: {self.PICKL_FNAME.exists()}")
         self._dist_unit = DEF_UNITS
         self._body_names = None
         self._datastore = None
@@ -78,6 +82,7 @@ class SystemDataStore:
     def _setup_datastore(self):
         # attempt to read pickle file
         # TODO:: FIX THIS!! I erased .pkl file, yet the code indicated it loaded data from disk...
+        print(f"Pickle File exists: {self.PICKL_FNAME.exists()}")
         if self.PICKL_FNAME.exists():
             with open(self.PICKL_FNAME, 'rb') as f:
                 print("Loaded existing pickle file...")
@@ -88,13 +93,14 @@ class SystemDataStore:
             print("Existing pickle file not found. Generating a new one...")
             # attempt to write pickle file
             if self._generate_datastore():
-                try:
-                    with open("_data_store.pkl", 'wb') as f:
-                        pickle.dump(self._datastore, f)
-                        print("New pickle file created...")
+                # try:
+                # TODO:: Figure out why this is not writing the pickle file!!
+                with open("_data_store.pkl", 'wb') as f:
+                    pickle.dump(self._datastore, f)
+                    print("New pickle file created...")
 
-                except IOError:
-                    print("Could not write pickle file...")
+                # except IOError:
+                #     print("Could not write pickle file...")
 
             else:
                 print("There was a problem generating the data...")

@@ -14,23 +14,16 @@
 
 from abc import ABC, abstractmethod
 
-import numpy as np
+from astropy import units
 from astropy.time import TimeDelta
 from poliastro.bodies import *
 from poliastro.constants import J2000_TDB as T0
 from poliastro.ephem import Ephem
 from poliastro.twobody import Orbit
 from poliastro.util import time_range
-from pyquaternion import Quaternion as quat
 
-base_vec2 = np.zeros(2)
-base_vec3 = np.zeros(3)
-base_vec4 = np.zeros(4)
-base_quat = quat(1.0, 0.0, 0.0, 0.0)
-vec2_type = type(base_vec2)
-vec3_type = type(base_vec3)
-vec4_type = type(base_vec4)
-quat_type = type(base_quat)
+from cfg_data import SystemDataStore as ref_data
+from util import *
 
 
 class SimParticle(ABC):
@@ -68,6 +61,13 @@ class SimParticle(ABC):
         self._rad = radius              # radius
         self._mss = mass                # mass
         self._acc = base_vec3.copy()    # acceleration
+        self._att = base_quat
+        self._rot = base_quat
+        self._attractor = None
+        self._bod = None
+        self._epochs = None
+        self._ephem = None
+        self._orbit = None
 
         super(SimParticle, self).__init__(*args, **kwargs)
         SimParticle._system.update({self._id: self})  # add new instance into system dict
@@ -109,7 +109,7 @@ class SimParticle(ABC):
 
 
 # ---------------------------------------------------------------------------------------
-class SimPlanet(SimParticle):
+class SimBody(SimParticle):
     """ Defines the SimPlanet subclass of SimParticle,
         a celestial body with state derived from JPL ephemeris,
         generally exhibiting Keplerian motion only.
@@ -118,7 +118,7 @@ class SimPlanet(SimParticle):
     # not sure if another class variable is needed
 
     def __init__(self,
-                 body=None,
+                 body_data,
                  # attitude=quat_type(1, 0, 0, 0),
                  # rotation=quat_type(1, 0, 0, 0),
                  *args,
@@ -130,29 +130,28 @@ class SimPlanet(SimParticle):
             *args:
             **kwargs:
         """
-        super(SimPlanet, self).__init__(*args, **kwargs)
-
-        if body and type(body) == Body:
+        super(SimBody, self).__init__(*args, **kwargs)
+        self._data = body_data
+        body = self._data['body_obj']
+        if body and issubclass(type(body), Body):
             self._bod = body
             self._id = self._id + self._bod.name
             # the following two 2/8are computed using rot_func()
-            self._att = base_quat.__copy__()
-            self._rot = base_quat.__copy__()
-            self._attractor = None
-            if self._bod.parent != Sun:
-                self._attractor = self._bod.parent
 
-            # TODO:: set linear range of time coordinates over orbital period
-            self._epochs = self.init_epochs()
-            self._ephem = self.init_ephem()
-            self._orbit = self.init_orbit()
+            if self._bod.parent:
+                self._attractor = self._bod.parent
 
         else:
             raise TypeError("'body' argument must be of type Body")
 
+        # TODO:: set linear range of time coordinates over orbital period
+        self._o_per = self._data['o_period']
+        self._epochs = self.init_epochs()
+        self._ephem = self.init_ephem()
+        self._orbit = self.init_orbit()
+
     def init_epochs(self):
-        return time_range(start=T0, periods=360)
-        pass
+        return time_range(start=T0, periods=int((self._o_per / (units.s * 60 * 60 * 24)).value), end=T0 + self._o_per)
 
     def init_ephem(self):
         return Ephem.from_body(body=self._bod,
@@ -199,6 +198,6 @@ class SimShip(SimParticle):
 # ---------------------------------------------------------------------------------------
 if __name__ == "__main__":
     print("Hello World!")
-    mammylist = [1, 2, 3]
-    mammylist[0] = 4
-    print(mammylist)
+    r_dat = ref_data()
+    sb = SimBody(r_dat.body_data['Earth'])
+    print(sb.__dir__())

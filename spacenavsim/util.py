@@ -7,14 +7,6 @@
 #
 #  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#
-#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-#
-#
-#  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-#
 import math
 import sys
 
@@ -24,13 +16,21 @@ from astropy.units import Quantity as u
 from pathlib2 import Path
 from PIL import Image
 from poliastro.constants import J2000_TDB
-from pyquaternion import Quaternion
 from vispy.geometry.meshdata import MeshData
 from vispy.util.quaternion import Quaternion
 
 """------------------------  UTILITY FUNCTIONS --------------------------------------------"""
 P = Path("c:")
 DEF_TEX_FNAME = P / "../resources/textures/2k_5earth_daymap.png"
+base_vec2 = np.zeros(2)
+base_vec3 = np.zeros(3)
+base_vec4 = np.zeros(4)
+base_quat = Quaternion(1.0, 0.0, 0.0, 0.0)
+vec2_type = type(base_vec2)
+vec3_type = type(base_vec3)
+vec4_type = type(base_vec4)
+quat_type = type(base_quat)
+id_matrix = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
 
 
 def quat_to_rpy(quat):
@@ -291,43 +291,6 @@ def to_quat_str(quat):
         return quat_str
 
     return ""
-
-
-
-# log_config = {
-#     "version": 1,
-#     "formatters": {
-#         "logformatter": {
-#             "format":
-#                 "%(asctime)s:%(levelname)s:%(name)s:%(funcName)s:%(message)s",
-#         },
-#         "traceformatter": {
-#             "format":
-#                 "%(asctime)s:%(process)s:%(levelname)s:%(filename)s:"
-#                 "%(lineno)s:%(name)s:%(funcName)s:%(message)s",
-#         },
-#     },
-#     "handlers": {
-#         "loghandler": {
-#             "class": "logging.FileHandler",
-#             "level": logging.DEBUG,
-#             "formatter": "logformatter",
-#             "filename": "app.log",
-#         },
-#         "tracehandler": {
-#             "class": "logging.FileHandler",
-#             "level": autologging.TRACE,
-#             "formatter": "traceformatter",
-#             "filename": "trace.log",
-#         },
-#     },
-#     "loggers": {
-#         "my_module.MyClass": {
-#             "level": autologging.TRACE,
-#             "handlers": ["tracehandler", "loghandler"],
-#         },
-#     },
-# }
 
 
 if __name__ == "__main__":
