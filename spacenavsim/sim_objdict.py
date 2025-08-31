@@ -2,7 +2,6 @@
 import time as systime
 from concurrent.futures import ThreadPoolExecutor
 
-import astropy.units as u
 import numpy as np
 from astropy.coordinates import solar_system_ephemeris
 from astropy.time import Time
@@ -15,26 +14,26 @@ class SimObjectDict(dict):
 
     def __init__(self,
                  epoch=None,
-                 ref_data=None,
+                 cfg_dat=None,
                  use_multi=False,
                  auto_up=False
                  ):
         super(SimObjectDict, self).__init__()
         solar_system_ephemeris.set("jpl")
         self._sys_primary = None
-        self._dist_unit = ref_data.dist_unit
-        self._vec_type = ref_data.vec_type
-        self._valid_body_names = ref_data.body_names
+        self._dist_unit = cfg_dat.dist_unit
+        self._vec_type = cfg_dat.vec_type
+        self._valid_body_names = cfg_dat.body_names
         self._body_count = 0
         self._sys_rel_pos = None
         self._sys_rel_vel = None
         self._bod_tot_acc = None
-        self._USE_MULTI = ref_data._USE_MULTIPROC
+        self._USE_MULTI = cfg_dat._USE_MULTIPROC
 
         if epoch:
             self._sys_epoch = epoch
         else:
-            self._sys_epoch = Time(ref_data.DEF_EPOCH0, format='jd', scale='tdb')
+            self._sys_epoch = Time(cfg_dat.DEF_EPOCH0, format='jd', scale='tdb')
 
         self._base_t = 0
         self._t1 = 0
@@ -86,6 +85,14 @@ class SimObjectDict(dict):
 
         return new_orbits
 
+    def get_new_ephems(self, epochs=None):
+        new_ephems = [sb.get_new_ephem(epochs) for sb in self.values()]
+        return new_ephems
+
+    def get_state_sets(self):
+        state_sets = [sb.get_state_set(ephem=sb._ephem) for sb in self.values()]
+        return state_sets
+
     def set_parentage(self):
         self._sys_primary = None
         for sb in self.values():
@@ -125,10 +132,11 @@ class SimObjectDict(dict):
 if __name__ == "__main__":
 
     from poliastro.util import time_range
+    from astropy import units as u
 
     ref_dat = ref_data()
     bod_names = ref_dat.body_names
-    sod = SimObjectDict(ref_data=ref_dat)
+    sod = SimObjectDict(cfg_dat=ref_dat)
     for name in bod_names:
         sb = SimPlanet(body_data=ref_dat._datastore['BODY_PARAM'][name])
         sod[name] = sb
@@ -140,4 +148,5 @@ if __name__ == "__main__":
     time_span = time_range(1 * u.s, periods=10, spacing=1 * u.s , format='jd', scale='tdb')
     print(time_span)
     projections = [sod.update_orbits(t * u.s) for t in range(10)]
-    print(projections)
+    [[print(o) for o in p] for p in projections]
+    print(sod.get_state_sets()[0:-1][0][0])

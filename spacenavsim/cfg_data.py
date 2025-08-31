@@ -4,6 +4,7 @@ import logging.config
 import os
 import pickle
 
+from astropy import units as u
 from pathlib2 import Path
 from poliastro.bodies import *
 from poliastro.constants import J2000_TDB

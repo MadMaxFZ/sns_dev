@@ -5,8 +5,7 @@
 """
 from abc import ABC, abstractmethod
 
-from astropy import units
-# from astropy.time import Time, TimeDelta
+from astropy import units as un
 from poliastro.bodies import *
 from poliastro.constants import J2000_TDB as T0
 from poliastro.core.propagation.base import func_twobody
@@ -17,6 +16,8 @@ from poliastro.util import time_range
 
 from cfg_data import SystemDataStore as ref_data
 from util import *
+
+FPS = 60
 
 
 @abstractmethod
@@ -66,6 +67,27 @@ class SimParticle(ABC):
 
         SimParticle._system.update({self._id: self})  # add new instance into system dict
 
+    def f(self, t0, u_, k):
+        du_kep = func_twobody(t0, u_, k)
+
+        return du_kep
+
+    def get_new_orbit(self, dt):
+        if dt.ndim == 0:                        # needs to be a Quantity to work with ndim
+            new_orb = self._orbit.propagate(dt, method=CowellPropagator(f=self.f))
+
+            return new_orb
+
+        # TODO:: figure out if this is necessary or even makes sense...
+        #        this will only produce a set of orbits that will exist at that later time
+        elif dt.ndim == 1:
+            new_orbs = [self._orbit.propagate(t, method=CowellPropagator(f=self.f)) for t in dt]
+
+            return new_orbs
+
+        else:
+            raise TypeError("'dt' argument must be scalar or 1-D vector")
+
 
 # ---------------------------------------------------------------------------------------
 class SimPlanet(SimParticle):
@@ -77,7 +99,7 @@ class SimPlanet(SimParticle):
     # not sure if another class variable is needed
 
     def __init__(self,
-                 body_data,
+                 body_data,                       # This must be data for ONE Body
                  # attitude=quat_type(1, 0, 0, 0),
                  # rotation=quat_type(1, 0, 0, 0),
                  *args,
@@ -95,17 +117,18 @@ class SimPlanet(SimParticle):
         body = self._data['body_obj']
         if body:    # and issubclass(type(body), Body):
             self._body = body
+            self._o_per = self._data['o_period']
+            self._id = self._id + self._body.name
             if self._body.parent:
                 self._attractor = self._body.parent
 
-            self._o_per = self._data['o_period']
-            self._id = self._id + self._body.name
             self._epochs = time_range(start=T0,
-                                      periods=int((self._o_per / (units.s * 60 * 60 * 24)).value),
+                                      periods=int(self._o_per / (60 * 60 * 24 * un.s)),
                                       end=T0 + self._o_per
                                       )
+            self._epo = self._epochs[0]
             self._ephem = Ephem.from_body(body=self._body,
-                                          epochs=self._epochs,  # must define these
+                                          epochs=self._epochs,
                                           # *,  # not sure what this should be
                                           attractor=self._attractor,
                                           plane=Planes.EARTH_ECLIPTIC
@@ -114,6 +137,7 @@ class SimPlanet(SimParticle):
                                            ephem=self._ephem,
                                            epoch=self._epochs[0]
                                            )
+            self._full_ephem = self.get_new_ephem(epochs=self._epochs)
 
         else:
             raise TypeError("'body' argument must be of type Body")
@@ -123,16 +147,38 @@ class SimPlanet(SimParticle):
 
         return du_kep
 
-    # TODO:: double check this method for all cases
-    def get_new_orbit(self, dt):
-        if dt.ndim == 0:
-            return self._orbit.propagate(dt, method=CowellPropagator(f=self.f))
+    def get_new_ephem(self, epochs=None):
+        if self._body.parent:
+            _plane = Planes.EARTH_ECLIPTIC
+            if self._attractor == Earth:
+                _plane = Planes.EARTH_EQUATOR
 
-        elif dt.ndim == 1:
-            return [self._orbit.propagate(t, method=CowellPropagator(f=self.f)) for t in dt]
+            if not epochs:
+                epochs = self._epochs
+
+            new_ephem = Ephem.from_orbit(self._orbit,
+                                         epochs,
+                                         plane=_plane,
+                                         )
+            return new_ephem
 
         else:
-            raise TypeError("'dt' argument must be scalar or 1-D vector")
+            return None
+
+    def get_state_set(self, ephem=None, epochs=None, **kwargs):
+        if not ephem:
+            ephem = self._ephem
+
+        if not epochs:
+            epochs = time_range(start=self._epochs[0],
+                                periods=FPS,
+                                spacing=un.s / FPS,
+                                format='jd',
+                                scale='tdb'
+                                )
+        new_states = ephem.rv(epochs, **kwargs)
+
+        return new_states
 
     @property
     def body(self):
@@ -154,7 +200,32 @@ class SimShip(SimParticle):
     def __init__(self, parent=Earth, *args, **kwargs):
         super(SimShip, self).__init__(*args, **kwargs)
 
-    # add ship attributes here
+    def f(self, t0, u_, k):
+        du_kep = func_twobody(t0, u_, k)
+
+        return du_kep
+
+    def perturb(t0, state, k):
+        # compute perturbation based upon current state
+
+        return [0., 0., 0.]
+
+    def f(self, t0, u_, k):
+        du_kep = func_twobody(t0, u_, k)
+        ax, ay, az = self.perturb(t0, u_, k)
+        du_ad = np.array([0., 0., 0., ax, ay, az])
+
+        return du_kep + du_ad
+
+    def get_new_orbit(self, dt):
+        if dt.ndim == 0:                        # needs to be a Quantity to work with ndim
+            return self._orbit.propagate(dt, method=CowellPropagator(f=self.f))
+
+        elif dt.ndim == 1:
+            return [self._orbit.propagate(t, method=CowellPropagator(f=self.f)) for t in dt]
+
+        else:
+            raise TypeError("'dt' argument must be scalar or 1-D vector")
 
 
 # ---------------------------------------------------------------------------------------
