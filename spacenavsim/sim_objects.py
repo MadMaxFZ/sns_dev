@@ -6,17 +6,20 @@
 from abc import ABC, abstractmethod
 
 from astropy import units
-from astropy.time import TimeDelta
+# from astropy.time import Time, TimeDelta
 from poliastro.bodies import *
 from poliastro.constants import J2000_TDB as T0
+from poliastro.core.propagation.base import func_twobody
 from poliastro.ephem import Ephem
 from poliastro.twobody import Orbit
+from poliastro.twobody.propagation import CowellPropagator
 from poliastro.util import time_range
 
 from cfg_data import SystemDataStore as ref_data
 from util import *
 
 
+@abstractmethod
 class SimParticle(ABC):
     """ Defines the SimParticle class
         model a particle with a radius, mass, and a state of linear motion
@@ -44,6 +47,7 @@ class SimParticle(ABC):
             epoch:
         """
         # unique instance label
+        super(SimParticle, self).__init__()
         self._id = "obj" + "{:05d}".format(len(SimParticle._system))
         self._sts = "not configured"    # status (e.g., "at rest", "moving", "flying") use ENUM here
         self._epo = epoch               # timestamp of observation
@@ -55,52 +59,16 @@ class SimParticle(ABC):
         self._att = base_quat
         self._rot = base_quat
         self._attractor = None
-        self._bod = None
+        self._body = None
         self._epochs = None
         self._ephem = None
         self._orbit = None
 
-        super(SimParticle, self).__init__(*args, **kwargs)
         SimParticle._system.update({self._id: self})  # add new instance into system dict
-
-    @abstractmethod
-    def init_ephem(self):
-        return None
-
-    @abstractmethod
-    def init_orbit(self):
-        return None
-
-    @abstractmethod
-    def get_upstate(self, dt):
-        """
-            Returns a state based upon the current state and accelerations over time dt.
-            Subclasses will most likely need to override this method.
-
-            Args:
-                dt: dt is TimeDelta, increment from current epoch
-        """
-        # apply acceleration
-        # TODO:: model accel with a function over a time segment?
-
-        if type(dt) == TimeDelta:
-            _vel = self._vel + self._acc * dt
-            _pos = self._pos + _vel * dt
-            _epo = self._epo + dt
-
-            # apply torque
-            # TODO:: model torque with a function over a time segment?
-            # self._rot += self._trq * dt
-            # self._att += self._rot * dt 	# double check quat math here
-
-            return _pos, _vel, _epo
-
-        else:
-            raise TypeError("Argument MUST be a TimeDelta...")
 
 
 # ---------------------------------------------------------------------------------------
-class SimBody(SimParticle):
+class SimPlanet(SimParticle):
     """ Defines the SimPlanet subclass of SimParticle,
         a celestial body with state derived from JPL ephemeris,
         generally exhibiting Keplerian motion only.
@@ -121,56 +89,58 @@ class SimBody(SimParticle):
             *args:
             **kwargs:
         """
-        super(SimBody, self).__init__(*args, **kwargs)
+
+        super(SimPlanet, self).__init__(*args, **kwargs)
         self._data = body_data
         body = self._data['body_obj']
-        if body and issubclass(type(body), Body):
-            self._bod = body
-            self._id = self._id + self._bod.name
-            # the following two 2/8are computed using rot_func()
+        if body:    # and issubclass(type(body), Body):
+            self._body = body
+            if self._body.parent:
+                self._attractor = self._body.parent
 
-            if self._bod.parent:
-                self._attractor = self._bod.parent
+            self._o_per = self._data['o_period']
+            self._id = self._id + self._body.name
+            self._epochs = time_range(start=T0,
+                                      periods=int((self._o_per / (units.s * 60 * 60 * 24)).value),
+                                      end=T0 + self._o_per
+                                      )
+            self._ephem = Ephem.from_body(body=self._body,
+                                          epochs=self._epochs,  # must define these
+                                          # *,  # not sure what this should be
+                                          attractor=self._attractor,
+                                          plane=Planes.EARTH_ECLIPTIC
+                                          )
+            self._orbit = Orbit.from_ephem(attractor=self._attractor,
+                                           ephem=self._ephem,
+                                           epoch=self._epochs[0]
+                                           )
 
         else:
             raise TypeError("'body' argument must be of type Body")
 
-        # TODO:: set linear range of time coordinates over orbital period
-        self._o_per = self._data['o_period']
-        self._epochs = self.init_epochs()
-        self._ephem = self.init_ephem()
-        self._orbit = self.init_orbit()
-        print("initiated")
+    def f(self, t0, u_, k):
+        du_kep = func_twobody(t0, u_, k)
 
-    def init_epochs(self):
-        return time_range(start=T0, periods=int((self._o_per / (units.s * 60 * 60 * 24)).value), end=T0 + self._o_per)
+        return du_kep
 
-    def init_ephem(self):
-        return Ephem.from_body(body=self._bod,
-                               epochs=self._epochs,  # must define these
-                               # *,  # not sure what this should be
-                               attractor=self._attractor,
-                               plane=Planes.EARTH_ECLIPTIC
-                               )
+    # TODO:: double check this method for all cases
+    def get_new_orbit(self, dt):
+        if dt.ndim == 0:
+            return self._orbit.propagate(dt, method=CowellPropagator(f=self.f))
 
-    def init_orbit(self):
-        return Orbit.from_ephem(attractor=self._attractor,
-                                ephem=self._ephem,
-                                epoch=self._epochs[0]
-                                )
+        elif dt.ndim == 1:
+            return [self._orbit.propagate(t, method=CowellPropagator(f=self.f)) for t in dt]
 
-    def get_upstate(self, dt):
-        """
-            Return
-        """
-        pass
+        else:
+            raise TypeError("'dt' argument must be scalar or 1-D vector")
 
     @property
     def body(self):
-        return self._bod
+        return self._body
 
-
-# update poliastro orbit here
+    # @property
+    # def attractor(self):
+    #     return self._attractor
 
 
 # ---------------------------------------------------------------------------------------
@@ -186,14 +156,10 @@ class SimShip(SimParticle):
 
     # add ship attributes here
 
-    def get_upstate(self, dt):
-        # update from poliastro and user inputs
-        pass
-
 
 # ---------------------------------------------------------------------------------------
 if __name__ == "__main__":
     print("Hello World!")
     r_dat = ref_data()
-    sb = SimBody(r_dat.body_data['Earth'])
+    sb = SimPlanet(body_data=r_dat._datastore['BODY_PARAM']['Earth'])
     print(sb.__dir__())

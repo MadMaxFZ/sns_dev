@@ -115,12 +115,12 @@ class SimObjectDict(dict):
         _tx = time.perf_counter()
 
         if self._USE_MULTIPROC:
-            futures = (self.executor.submit(sb.get_upstate, epoch=epoch)
+            futures = (self.executor.submit(sb.get_new_orbit, epoch=epoch)
                        for sb in self.data.values())
             for future in futures:
                 future.result()
         else:
-            [sb.get_upstate(epoch)
+            [sb.get_new_orbit(epoch)
              for sb in self.data.values()]
 
         self._t1 = time.perf_counter()

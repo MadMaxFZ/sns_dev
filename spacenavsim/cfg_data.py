@@ -370,7 +370,6 @@ class SystemDataStore:
         # list of body names available in sim, cast to a tuple to preserve order
         return tuple(self._datastore['BODY_PARAM'].keys())
 
-    @property
     def body_data(self, name=None):
         res = None
         if not name:

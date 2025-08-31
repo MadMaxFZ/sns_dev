@@ -8,7 +8,7 @@ from astropy.coordinates import solar_system_ephemeris
 from astropy.time import Time
 
 from cfg_data import SystemDataStore as ref_data
-from sim_objects import SimBody, SimParticle
+from sim_objects import SimParticle, SimPlanet
 
 
 class SimObjectDict(dict):
@@ -21,21 +21,6 @@ class SimObjectDict(dict):
                  ):
         super(SimObjectDict, self).__init__()
         solar_system_ephemeris.set("jpl")
-        # if data:
-        #     self.data = {name: self._validate_sim_obj(simbody) for name, simbody in data.items()}
-        # else:
-        #     self.data = {}
-        #
-        # if ref_data:
-        #     if isinstance(ref_data, SystemDataStore):
-        #         print('<sys_data> input is valid...')
-        #     else:
-        #         print('Bad <sys_data> input... Reverting to defaults...')
-        #         ref_data = SystemDataStore()
-        # else:
-        #     ref_data = SystemDataStore()
-        #
-        # self.ref_data = ref_data
         self._sys_primary = None
         self._dist_unit = ref_data.dist_unit
         self._vec_type = ref_data.vec_type
@@ -46,11 +31,6 @@ class SimObjectDict(dict):
         self._bod_tot_acc = None
         self._USE_MULTI = ref_data._USE_MULTIPROC
 
-        # if body_names:
-        #     self._current_body_names = tuple([n for n in body_names if n in self._valid_body_names])
-        # else:
-        #     self._current_body_names = tuple(self._valid_body_names)
-
         if epoch:
             self._sys_epoch = epoch
         else:
@@ -60,16 +40,17 @@ class SimObjectDict(dict):
         self._t1 = 0
         self.executor = ThreadPoolExecutor(max_workers=6)
 
-    def __setitem__(self, name, sim_obj):
-        self.update({name: self._validate_sim_obj(sim_obj)})
+    def __setitem__(self, obj_name: str, sim_obj):
+        self.update({obj_name: self._validate_sim_obj(sim_obj)})
+        super().__setitem__(obj_name, sim_obj)
         self._set_rel_arrays()
 
-    def __delitem__(self, name):
-        super(SimObjectDict, self).__delitem__(name)
+    def __delitem__(self, obj_name):
+        super().__delitem__(obj_name)
         self._set_rel_arrays()
 
-    def __getitem__(self, name):
-        return self[name]
+    def __getitem__(self, obj_name):
+        return super().__getitem__(obj_name)
 
     def _set_rel_arrays(self):
         self._body_count = len(self)
@@ -80,31 +61,35 @@ class SimObjectDict(dict):
     @staticmethod
     def _validate_sim_obj(sim_obj):
         if not issubclass(type(sim_obj), SimParticle):
-            raise TypeError("SimObject expected")
+            raise TypeError("SimPlanet expected")
 
         return sim_obj
 
-    def update_state(self, epoch):
+    # TODO:: rework the timing code here into a decorator!!
+    def update_orbits(self, epoch):
         self._base_t = self._t1
         _tx = systime.perf_counter()
 
+        new_orbits = None
         if self._USE_MULTI:
-            futures = (self.executor.submit(sb.get_upstate, epoch)
-                       for sb in self.values())
+            futures = [self.executor.submit(sb.get_new_orbit, epoch)
+                       for sb in self.values() if sb.attractor]
             for future in futures:
                 future.result()
         else:
-            [sb.get_upstate(epoch) for sb in self.values()]
+            new_orbits = [sb.get_new_orbit(epoch) for sb in self.values() if sb._attractor]
 
         self._t1 = systime.perf_counter()
         update_time = self._t1 - self._base_t
         print(f'\n\t\t> Frame Rate: {1 / update_time:.6f} FPS (1/{update_time:.4f})\n'
-              f'' f'  Model updated in {self._t1 - _tx:.6f} seconds...')
-        # self.has_updated.emit(update_time)
+              f'' f'  Orbits updated in {self._t1 - _tx:.6f} seconds...')
+
+        return new_orbits
 
     def set_parentage(self):
         self._sys_primary = None
         for sb in self.values():
+            print(type(sb))
             if sb.body.parent:
                 sb.parent = sb.body.parent.name
             else:
@@ -138,13 +123,21 @@ class SimObjectDict(dict):
 
 
 if __name__ == "__main__":
-   ref_dat = ref_data()
-   bod_names = ref_dat.body_names
-   sod = SimObjectDict(ref_data=ref_dat)
-   for name in bod_names:
-       sb = SimBody(body_data=ref_dat.body_data[name])
-       sod[name] = sb
 
-   sod.set_parentage()
-   sod.update_state(10 * u.s)
-   print(sod.get_attribute_list('_vel'))
+    from poliastro.util import time_range
+
+    ref_dat = ref_data()
+    bod_names = ref_dat.body_names
+    sod = SimObjectDict(ref_data=ref_dat)
+    for name in bod_names:
+        sb = SimPlanet(body_data=ref_dat._datastore['BODY_PARAM'][name])
+        sod[name] = sb
+
+    third_rock = sod['Earth']
+    print(third_rock)
+    # sod.set_parentage()
+    kick = sod.update_orbits(1 * u.s)
+    time_span = time_range(1 * u.s, periods=10, spacing=1 * u.s , format='jd', scale='tdb')
+    print(time_span)
+    projections = [sod.update_orbits(t * u.s) for t in range(10)]
+    print(projections)
