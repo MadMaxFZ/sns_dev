@@ -96,13 +96,6 @@ def toTD(epoch=None):
     return dict(T=T, d=d)
 
 
-def earth_rot_elements_at_epoch(epoch):
-    """"""
-    T, d = list(toTD(epoch).values())
-    _T = T
-    return 0, 90 - 23.5, (d - math.floor(d)) * 360.0
-
-
 def t_since_ref(epoch=None, ref=J2000_TDB):
     """"""
     if epoch is None:
@@ -113,6 +106,13 @@ def t_since_ref(epoch=None, ref=J2000_TDB):
     rot_T = (t_since / 36525.0).value  # dt in centuries
     rot_d = t_since.to(u.day).value  # dt in days
     return rot_T, rot_d
+
+
+def earth_rot_elements_at_epoch(self, epoch):
+    """"""
+    T, d = list(toTD(epoch).values())
+    _T = T
+    return 0, 90 - 23.5, (d - math.floor(d)) * 360.0
 
 
 # taken from https://goshippo.com/blog/measure-real-size-any-python-object by Wissam Jarjoui

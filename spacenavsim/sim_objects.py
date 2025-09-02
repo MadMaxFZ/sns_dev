@@ -5,7 +5,6 @@
 """
 from abc import ABC, abstractmethod
 
-from astropy import units as un
 from poliastro.bodies import *
 from poliastro.constants import J2000_TDB as T0
 from poliastro.core.propagation.base import func_twobody
@@ -14,7 +13,6 @@ from poliastro.twobody import Orbit
 from poliastro.twobody.propagation import CowellPropagator
 from poliastro.util import time_range
 
-from cfg_data import SystemDataStore as ref_data
 from util import *
 
 FPS = 60
@@ -27,7 +25,7 @@ class SimParticle(ABC):
     """
     # keep a dictionary of all SimParticle instances
     # ?? How does this affect the subclasses ??
-    _system = {}
+    # _system = {}
 
     def __init__(self,
                  position=base_vec3.copy(),
@@ -65,7 +63,7 @@ class SimParticle(ABC):
         self._ephem = None
         self._orbit = None
 
-        SimParticle._system.update({self._id: self})  # add new instance into system dict
+        # SimParticle._system.update({self._id: self})  # add new instance into system dict
 
     def f(self, t0, u_, k):
         du_kep = func_twobody(t0, u_, k)
@@ -123,7 +121,7 @@ class SimPlanet(SimParticle):
                 self._attractor = self._body.parent
 
             self._epochs = time_range(start=T0,
-                                      periods=int(self._o_per / (60 * 60 * 24 * un.s)),
+                                      periods=int(self._o_per / (60 * 60 * 24 * u.s)),
                                       end=T0 + self._o_per
                                       )
             self._epo = self._epochs[0]
@@ -172,7 +170,7 @@ class SimPlanet(SimParticle):
         if not epochs:
             epochs = time_range(start=self._epochs[0],
                                 periods=FPS,
-                                spacing=un.s / FPS,
+                                spacing=u.s / FPS,
                                 format='jd',
                                 scale='tdb'
                                 )
@@ -230,6 +228,7 @@ class SimShip(SimParticle):
 
 # ---------------------------------------------------------------------------------------
 if __name__ == "__main__":
+    from cfg_data import SystemDataStore as ref_data
     print("Hello World!")
     r_dat = ref_data()
     sb = SimPlanet(body_data=r_dat._datastore['BODY_PARAM']['Earth'])

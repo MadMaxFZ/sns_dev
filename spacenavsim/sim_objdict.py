@@ -6,7 +6,7 @@ import numpy as np
 from astropy.coordinates import solar_system_ephemeris
 from astropy.time import Time
 
-from cfg_data import SystemDataStore as ref_data
+from cfg_data import data_store as ref_data
 from sim_objects import SimParticle, SimPlanet
 
 
@@ -18,17 +18,20 @@ class SimObjectDict(dict):
                  use_multi=False,
                  auto_up=False
                  ):
+        if not cfg_dat:
+            cfg_dat = ref_data
+
         super(SimObjectDict, self).__init__()
         solar_system_ephemeris.set("jpl")
         self._sys_primary = None
-        self._dist_unit = cfg_dat.dist_unit
-        self._vec_type = cfg_dat.vec_type
+        # self._dist_unit = cfg_dat.dist_unit
+        # self._vec_type = cfg_dat.vec_type
         self._valid_body_names = cfg_dat.body_names
         self._body_count = 0
         self._sys_rel_pos = None
         self._sys_rel_vel = None
         self._bod_tot_acc = None
-        self._USE_MULTI = cfg_dat._USE_MULTIPROC
+        self._USE_MULTIPROC = cfg_dat._USE_MULTIPROC
 
         if epoch:
             self._sys_epoch = epoch
@@ -70,7 +73,7 @@ class SimObjectDict(dict):
         _tx = systime.perf_counter()
 
         new_orbits = None
-        if self._USE_MULTI:
+        if self._USE_MULTIPROC:
             futures = [self.executor.submit(sb.get_new_orbit, epoch)
                        for sb in self.values() if sb.attractor]
             for future in futures:

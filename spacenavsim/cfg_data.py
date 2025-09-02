@@ -5,14 +5,12 @@ import os
 import pickle
 
 from astropy import units as u
-from pathlib2 import Path
 from poliastro.bodies import *
-from poliastro.constants import J2000_TDB
 from poliastro.core.fixed import *
 from poliastro.frames.fixed import *
 from poliastro.frames.fixed import MoonFixed as LunaFixed
 
-from util import earth_rot_elements_at_epoch, get_texture_data
+from util import *
 
 
 # logging.basicConfig(filename=SNS_SOURCE_PATH / "../logs/sns_defs.log",
@@ -47,16 +45,17 @@ class SystemDataStore:
             body are grouped beneath it. The TYPE and MARK fields are determined
             according to the parent of the body.
         """
-        self.DEF_UNITS = u.km
+        self.DIST_UNIT = 1 * u.km
         self.DEF_EPOCH0 = J2000_TDB
         self._USE_MULTIPROC = False
         vec_type = type(np.zeros((3,), dtype=np.float64))
-        self.P = Path("c:")
-        self.SNS_SOURCE_PATH = self.P / '_Projects' / 'sns_dev' / 'spacenavsim'  # "c:\\_Projects\\sns2\\src\\"
-        self.PICKL_FNAME = self.SNS_SOURCE_PATH / "_data_store.pkl"
+        self.P = Path("L:\\")
+        self.SNS_ROOT_PATH = self.P / '_Projects' / 'sns_dev'   # "c:\\_Projects\\sns2\\src\\"
+        self.SNS_SOURCE_PATH = self.SNS_ROOT_PATH / 'spacenavsim'
+        self.PICKL_FNAME = self.SNS_ROOT_PATH / 'data' / '_data_store.pkl'
         os.chdir(self.SNS_SOURCE_PATH)
         print(f"Pickle File exists: {self.PICKL_FNAME.exists()}")
-        self._dist_unit = self.DEF_UNITS
+        # self._dist_unit = self.DIST_UNIT
         self._body_names = None
         self._datastore = None
         self.USE_AUTO_UPDATE_STATE = False
@@ -83,7 +82,7 @@ class SystemDataStore:
             if self._generate_datastore():
                 # try:
                 # TODO:: Figure out why this is not writing the pickle file!!
-                f = open("_data_store.pkl", 'wb')
+                f = open("../data/_data_store.pkl", 'wb')
                 pickle.dump(self._datastore, f)
                 print("New pickle file created...")
                 f.close()
@@ -348,7 +347,7 @@ class SystemDataStore:
 
     @property
     def dist_unit(self):
-        return self._dist_unit
+        return self.DIST_UNIT
 
     @property
     def vec_type(self):
@@ -422,9 +421,12 @@ class SystemDataStore:
         return tuple(['attr_', 'elem_coe', 'elem_pqw', 'elem_rv', 'syst_', 'vizz_'])
 
 
+data_store = SystemDataStore()
+
+
 # Example usage
 if __name__ == "__main__":
-    data_store = SystemDataStore()
+
     print(data_store.body_names)
     print(data_store.body_data['Earth'])
     print(data_store.texture_fname[0:-1])
