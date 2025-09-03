@@ -4,8 +4,6 @@
         a derived class that simulates maneuverable spacecraft (SimShip).
 """
 from abc import ABC, abstractmethod
-
-from astropy import units as u
 from poliastro.bodies import *
 from poliastro.constants import J2000_TDB as T0
 from poliastro.core.propagation.base import func_twobody
@@ -13,8 +11,8 @@ from poliastro.ephem import Ephem
 from poliastro.twobody import Orbit
 from poliastro.twobody.propagation import CowellPropagator
 from poliastro.util import time_range
-
 from util import *
+from astropy import units as u
 
 FPS = 60
 

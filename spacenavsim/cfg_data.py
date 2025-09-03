@@ -3,14 +3,12 @@ import logging
 import logging.config
 import os
 import pickle
-
-from astropy import units as u
 from poliastro.bodies import *
 from poliastro.core.fixed import *
 from poliastro.frames.fixed import *
 from poliastro.frames.fixed import MoonFixed as LunaFixed
-
 from util import *
+from astropy import units as u
 
 
 # logging.basicConfig(filename=SNS_SOURCE_PATH / "../logs/sns_defs.log",
