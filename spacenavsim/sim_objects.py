@@ -14,8 +14,6 @@ from poliastro.util import time_range
 from util import *
 from astropy import units as u
 
-FPS = 60
-
 
 @abstractmethod
 class SimParticle(ABC):
@@ -55,10 +53,10 @@ class SimParticle(ABC):
         self._rad = radius              # radius
         self._mss = mass                # mass
         self._acc = base_vec3.copy()    # acceleration
-        self._att = base_quat
-        self._rot = base_quat
-        self._attractor = None
-        self._body = None
+        self._att = base_quat           # attitude
+        self._rot = base_quat           # rotation
+        self._attractor = None          # parent body
+        self._body = None               # poliastro Body subclass
         self._epochs = None
         self._ephem = None
         self._orbit = None
@@ -66,25 +64,24 @@ class SimParticle(ABC):
         # SimParticle._system.update({self._id: self})  # add new instance into system dict
 
     def f(self, t0, u_, k):
+        """
+
+        :param t0:
+        :param u_:
+        :param k:
+        :return:
+        """
         du_kep = func_twobody(t0, u_, k)
 
         return du_kep
 
     def get_new_orbit(self, dt):
-        if dt.ndim == 0:                        # needs to be a Quantity to work with ndim
-            new_orb = self._orbit.propagate(dt, method=CowellPropagator(f=self.f))
+        """
 
-            return new_orb
-
-        # TODO:: figure out if this is necessary or even makes sense...
-        #        this will only produce a set of orbits that will exist at that later time
-        elif dt.ndim == 1:
-            new_orbs = [self._orbit.propagate(t, method=CowellPropagator(f=self.f)) for t in dt]
-
-            return new_orbs
-
-        else:
-            raise TypeError("'dt' argument must be scalar or 1-D vector")
+        :param dt:
+        :return:
+        """
+        pass
 
     @property
     def pos(self):
@@ -127,16 +124,19 @@ class SimPlanet(SimParticle):
                  *args,
                  **kwargs):
         """
-            Initialize a SimPlanet instance.
-        Args:
-            body:
-            *args:
-            **kwargs:
-        """
 
+        :param body_data:
+        :param args:
+        :param kwargs:
+        """
         super(SimPlanet, self).__init__(*args, **kwargs)
         self._data = body_data
-        body = self._data['body_obj']
+        body = None
+        try:
+            body = self._data['body_obj']
+        except KeyError as e:
+            print(f"body_data is missing: {e}")
+
         if body:    # and issubclass(type(body), Body):
             self._body = body
             self._o_per = self._data['o_period']
@@ -165,11 +165,23 @@ class SimPlanet(SimParticle):
             raise TypeError("'body' argument must be of type Body")
 
     def f(self, t0, u_, k):
+        """
+
+        :param t0:
+        :param u_:
+        :param k:
+        :return:
+        """
         du_kep = func_twobody(t0, u_, k)
 
         return du_kep
 
     def get_new_ephem(self, epochs=None):
+        """
+
+        :param epochs:
+        :return:
+        """
         if self._body.parent:
             _plane = Planes.EARTH_ECLIPTIC
             if self._attractor == Earth:
@@ -188,7 +200,15 @@ class SimPlanet(SimParticle):
         else:
             return None
 
-    def get_state_set(self, ephem=None, epochs=None, **kwargs):
+    def get_state_set(self, ephem=None, epochs=None, FPS=60, **kwargs):
+        """
+
+        :param ephem:
+        :param epochs:
+        :param FPS:
+        :param kwargs:
+        :return:
+        """
         if not epochs:
             epochs = time_range(start=self._epochs[0],
                                 periods=FPS,
@@ -200,7 +220,7 @@ class SimPlanet(SimParticle):
         if not ephem:
             ephem = self.get_new_ephem(epochs=epochs)
 
-        new_states = [eph.rv(epochs, **kwargs) for eph in ephem if self._body.parent]
+        new_states = [rv for rv in ephem.rv(epochs) if self._body.parent]
 
         return new_states
 
@@ -219,18 +239,28 @@ class SimShip(SimParticle):
 
     def __init__(self, parent=Earth, *args, **kwargs):
         super(SimShip, self).__init__(*args, **kwargs)
-
-    def f(self, t0, u_, k):
-        du_kep = func_twobody(t0, u_, k)
-
-        return du_kep
+        self._attractor = parent
 
     def perturb(self, t0, state, k):
+        """
+
+        :param t0:
+        :param state:
+        :param k:
+        :return:
+        """
         # compute perturbation based upon current state
 
         return [0., 0., 0.]
 
     def f(self, t0, u_, k):
+        """
+
+        :param t0:
+        :param u_:
+        :param k:
+        :return:
+        """
         du_kep = func_twobody(t0, u_, k)
         ax, ay, az = self.perturb(t0, u_, k)
         du_ad = np.array([0., 0., 0., ax, ay, az])
@@ -238,6 +268,11 @@ class SimShip(SimParticle):
         return du_kep + du_ad
 
     def get_new_orbit(self, dt):
+        """
+
+        :param dt:
+        :return:
+        """
         if dt.ndim == 0:                        # needs to be a Quantity to work with ndim
             return self._orbit.propagate(dt, method=CowellPropagator(f=self.f))
 
@@ -255,3 +290,70 @@ if __name__ == "__main__":
     r_dat = ref_data()
     sb = SimPlanet(body_data=r_dat.body_data('Earth'))
     print(sb.__dir__())
+
+    # Tests for SimPlanet class
+    def test_sim_planet_initialization():
+        # Test initialization with valid body data
+        body_data = r_dat.body_data('Earth')
+        planet = SimPlanet(body_data=body_data)
+        assert planet._body == body_data['body_obj']
+        assert planet._o_per == body_data['o_period']
+        assert planet._id == "obj00002Earth"
+        assert planet._attractor == body_data['body_obj'].parent
+        assert len(planet._epochs) > 0
+        assert planet._epo == planet._epochs[0]
+        assert planet._full_ephem is not None
+        assert planet._orbit is not None
+
+        # Test initialization with invalid body data
+        try:
+            SimPlanet(body_data={})
+        except TypeError as e:
+            assert str(e) == "'body' argument must be of type Body"
+
+    def test_sim_planet_get_new_ephem():
+        # Test getting new ephemerides
+        body_data = r_dat.body_data('Earth')
+        planet = SimPlanet(body_data=body_data)
+        new_ephem = planet.get_new_ephem()
+        assert new_ephem is not None
+
+    def test_sim_planet_get_state_set():
+        # Test getting state sets
+        body_data = r_dat.body_data('Earth')
+        planet = SimPlanet(body_data=body_data)
+        state_sets = planet.get_state_set()
+        assert len(state_sets) > 0
+
+    # Tests for SimShip class
+    def test_sim_ship_initialization():
+        # Test initialization with default parent
+        ship = SimShip()
+        assert ship._attractor == Earth
+
+        # Test initialization with custom parent
+        parent = r_dat.body_data('Mars')['body_obj']
+        ship = SimShip(parent=parent)
+        assert ship._attractor == parent
+
+    def test_sim_ship_perturb():
+        # Test perturbation method
+        ship = SimShip()
+        perturb = ship.perturb(T0, np.zeros(6), np.zeros(3))
+        assert np.allclose(perturb, [0., 0., 0.])
+
+    # def test_sim_ship_get_new_orbit():
+    #     # Test getting new orbit
+    #     ship = SimShip()
+    #     new_orbit = ship.get_new_orbit(1 * u.s)
+    #     assert new_orbit is not None
+
+    # Run all tests
+    test_sim_planet_initialization()
+    test_sim_planet_get_new_ephem()
+    test_sim_planet_get_state_set()
+    test_sim_ship_initialization()
+    test_sim_ship_perturb()
+    # test_sim_ship_get_new_orbit()
+
+    print("All tests passed!")
