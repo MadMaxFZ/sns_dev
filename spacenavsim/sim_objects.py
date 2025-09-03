@@ -5,6 +5,7 @@
 """
 from abc import ABC, abstractmethod
 
+from astropy import units as u
 from poliastro.bodies import *
 from poliastro.constants import J2000_TDB as T0
 from poliastro.core.propagation.base import func_twobody
@@ -25,7 +26,7 @@ class SimParticle(ABC):
     """
     # keep a dictionary of all SimParticle instances
     # ?? How does this affect the subclasses ??
-    # _system = {}
+    _count =0
 
     def __init__(self,
                  position=base_vec3.copy(),
@@ -47,7 +48,8 @@ class SimParticle(ABC):
         """
         # unique instance label
         super(SimParticle, self).__init__()
-        self._id = "obj" + "{:05d}".format(len(SimParticle._system))
+        SimParticle._count += 1
+        self._id = "obj" + "{:05d}".format(SimParticle._count)
         self._sts = "not configured"    # status (e.g., "at rest", "moving", "flying") use ENUM here
         self._epo = epoch               # timestamp of observation
         self._pos = position            # position
@@ -85,6 +87,30 @@ class SimParticle(ABC):
 
         else:
             raise TypeError("'dt' argument must be scalar or 1-D vector")
+
+    @property
+    def pos(self):
+        return self._pos
+
+    @property
+    def vel(self):
+        return self._vel
+
+    @property
+    def mass(self):
+        return self._mss
+
+    @property
+    def orbit(self):
+        return self._orbit
+
+    @property
+    def ephem(self):
+        return self._ephem
+
+    @property
+    def attractor(self):
+        return self._attractor
 
 
 # ---------------------------------------------------------------------------------------
@@ -125,17 +151,17 @@ class SimPlanet(SimParticle):
                                       end=T0 + self._o_per
                                       )
             self._epo = self._epochs[0]
-            self._ephem = Ephem.from_body(body=self._body,
-                                          epochs=self._epochs,
-                                          # *,  # not sure what this should be
-                                          attractor=self._attractor,
-                                          plane=Planes.EARTH_ECLIPTIC
-                                          )
+            self._full_ephem = Ephem.from_body(body=self._body,
+                                               epochs=self._epochs,
+                                               # *,  # not sure what this should be
+                                               attractor=self._attractor,
+                                               plane=Planes.EARTH_ECLIPTIC
+                                               )
             self._orbit = Orbit.from_ephem(attractor=self._attractor,
-                                           ephem=self._ephem,
+                                           ephem=self._full_ephem,
                                            epoch=self._epochs[0]
                                            )
-            self._full_ephem = self.get_new_ephem(epochs=self._epochs)
+            # self._full_ephem = self.get_new_ephem(epochs=self._epochs)
 
         else:
             raise TypeError("'body' argument must be of type Body")
@@ -151,22 +177,20 @@ class SimPlanet(SimParticle):
             if self._attractor == Earth:
                 _plane = Planes.EARTH_EQUATOR
 
-            if not epochs:
+            if epochs is None:
                 epochs = self._epochs
 
             new_ephem = Ephem.from_orbit(self._orbit,
                                          epochs,
                                          plane=_plane,
                                          )
+
             return new_ephem
 
         else:
             return None
 
     def get_state_set(self, ephem=None, epochs=None, **kwargs):
-        if not ephem:
-            ephem = self._ephem
-
         if not epochs:
             epochs = time_range(start=self._epochs[0],
                                 periods=FPS,
@@ -174,17 +198,17 @@ class SimPlanet(SimParticle):
                                 format='jd',
                                 scale='tdb'
                                 )
-        new_states = ephem.rv(epochs, **kwargs)
+
+        if not ephem:
+            ephem = self.get_new_ephem(epochs=epochs)
+
+        new_states = [eph.rv(epochs, **kwargs) for eph in ephem if self._body.parent]
 
         return new_states
 
     @property
     def body(self):
         return self._body
-
-    # @property
-    # def attractor(self):
-    #     return self._attractor
 
 
 # ---------------------------------------------------------------------------------------
@@ -203,7 +227,7 @@ class SimShip(SimParticle):
 
         return du_kep
 
-    def perturb(t0, state, k):
+    def perturb(self, t0, state, k):
         # compute perturbation based upon current state
 
         return [0., 0., 0.]
@@ -231,5 +255,5 @@ if __name__ == "__main__":
     from cfg_data import SystemDataStore as ref_data
     print("Hello World!")
     r_dat = ref_data()
-    sb = SimPlanet(body_data=r_dat._datastore['BODY_PARAM']['Earth'])
+    sb = SimPlanet(body_data=r_dat.body_data('Earth'))
     print(sb.__dir__())

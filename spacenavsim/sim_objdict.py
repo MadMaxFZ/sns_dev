@@ -3,11 +3,13 @@ import time as systime
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
+from astropy.constants.codata2018 import G
 from astropy.coordinates import solar_system_ephemeris
 from astropy.time import Time
 
 from cfg_data import data_store as ref_data
 from sim_objects import SimParticle, SimPlanet
+from util import measure_execution_time
 
 
 class SimObjectDict(dict):
@@ -23,9 +25,10 @@ class SimObjectDict(dict):
 
         super(SimObjectDict, self).__init__()
         solar_system_ephemeris.set("jpl")
+        self.T0 = cfg_dat.DEF_EPOCH0
         self._sys_primary = None
         # self._dist_unit = cfg_dat.dist_unit
-        # self._vec_type = cfg_dat.vec_type
+        self._vec_type = cfg_dat.vec_type
         self._valid_body_names = cfg_dat.body_names
         self._body_count = 0
         self._sys_rel_pos = None
@@ -44,21 +47,39 @@ class SimObjectDict(dict):
 
     def __setitem__(self, obj_name: str, sim_obj):
         self.update({obj_name: self._validate_sim_obj(sim_obj)})
-        super().__setitem__(obj_name, sim_obj)
-        self._set_rel_arrays()
+        # super().__setitem__(obj_name, sim_obj)
+        self._renew_rel_arrays()
 
     def __delitem__(self, obj_name):
-        super().__delitem__(obj_name)
-        self._set_rel_arrays()
+        # super().__delitem__(obj_name)
+        self._renew_rel_arrays()
 
     def __getitem__(self, obj_name):
         return super().__getitem__(obj_name)
 
-    def _set_rel_arrays(self):
+    def _renew_rel_arrays(self):
         self._body_count = len(self)
         self._sys_rel_pos = np.zeros((self._body_count, self._body_count), dtype=self._vec_type)
         self._sys_rel_vel = np.zeros((self._body_count, self._body_count), dtype=self._vec_type)
         self._bod_tot_acc = np.zeros((self._body_count,), dtype=self._vec_type)
+
+    def _set_rel_arrays(self):
+        # iterate over body_count X body_count to get rel pos and vel between bodies
+        # also compute total acceleration on each body due to all other bodies
+        for i, k1 in enumerate(self.items()):
+            self._bod_tot_acc[i] = 0
+            for j, k2 in enumerate(self.items()):
+                if i < j:       # relative position
+                    self._sys_rel_pos[i][j] = k1.pos - k2.pos
+                elif j > i:     # relative velocity
+                    self._sys_rel_vel[i][j] = k1.vel - k2.vel
+                else:
+                    self._bod_tot_acc[i] += G * k2.mass / pow(self._sys_rel_pos[i][j], 2)
+
+    def _get_rel_arrays(self):
+        return (self._sys_rel_pos,
+                self._sys_rel_vel,
+                self._bod_tot_acc)
 
     @staticmethod
     def _validate_sim_obj(sim_obj):
@@ -89,11 +110,26 @@ class SimObjectDict(dict):
         return new_orbits
 
     def get_new_ephems(self, epochs=None):
-        new_ephems = [sb.get_new_ephem(epochs) for sb in self.values()]
+        new_ephems = [sb.get_new_ephem(epochs) for sb in self.values() if sb.attractor]
+        print(new_ephems)
+
         return new_ephems
 
-    def get_state_sets(self):
-        state_sets = [sb.get_state_set(ephem=sb._ephem) for sb in self.values()]
+    @measure_execution_time
+    def get_state_sets(self, T0=None, epochs=None, FPS=60, span=1):
+        if epochs:
+            _ephems = self.get_new_ephems(epochs)
+
+        else:
+            if T0 is None:
+                T0 = self.T0
+
+            _ephems = self.get_new_ephems(time_range(start=T0,
+                                                     periods=FPS,
+                                                     end=T0 + span * u.hr))
+
+        state_sets = [sb.get_state_set(ephem=_ephems) for sb in self.values() if sb.body[00]]
+
         return state_sets
 
     def set_parentage(self):
@@ -137,11 +173,10 @@ if __name__ == "__main__":
     from poliastro.util import time_range
     from astropy import units as u
 
-    ref_dat = ref_data()
-    bod_names = ref_dat.body_names
-    sod = SimObjectDict(cfg_dat=ref_dat)
+    bod_names = ref_data.body_names
+    sod = SimObjectDict(cfg_dat=ref_data)
     for name in bod_names:
-        sb = SimPlanet(body_data=ref_dat._datastore['BODY_PARAM'][name])
+        sb = SimPlanet(body_data=ref_data.body_data(name))
         sod[name] = sb
 
     third_rock = sod['Earth']
@@ -151,5 +186,7 @@ if __name__ == "__main__":
     time_span = time_range(1 * u.s, periods=10, spacing=1 * u.s , format='jd', scale='tdb')
     print(time_span)
     projections = [sod.update_orbits(t * u.s) for t in range(10)]
-    [[print(o) for o in p] for p in projections]
-    print(sod.get_state_sets()[0:-1][0][0])
+    # [[print(o) for o in p] for p in projections]
+    for _ in range(100):
+        setz = sod.get_state_sets()
+        # print(f"{setz}\nLength: {len(setz[0][0][0])}")

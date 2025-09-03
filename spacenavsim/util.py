@@ -9,6 +9,7 @@
 
 import math
 import sys
+import time
 
 import numpy as np
 from astropy.time import Time
@@ -31,6 +32,20 @@ vec3_type = type(base_vec3)
 vec4_type = type(base_vec4)
 quat_type = type(base_quat)
 id_matrix = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
+
+
+def measure_execution_time(func):
+    """
+    A decorator to measure the execution time of a function.
+    """
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)  # Execute the original function
+        end_time = time.time()
+        execution_duration = end_time - start_time
+        print(f"Function '{func.__name__}' executed in {execution_duration:.4f} seconds.")
+        return result
+    return wrapper
 
 
 def quat_to_rpy(quat):
